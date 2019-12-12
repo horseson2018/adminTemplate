@@ -1,0 +1,28 @@
+// import Menu from '@/views/menu/menu'
+import Login from '@/views/login/login'
+import InfoInput from '@/views/infoManage/InfoInput'
+import Layout from '@/views/layout/layout'
+
+const routes = [
+  {
+    path: '/',
+    component: Layout,
+    redirect: 'infoInput',
+    hidden: true,
+    children: [
+      {
+        path: 'infoInput',
+        component: InfoInput,
+        name: 'InfoInput'
+      }
+    ]
+  },
+  {
+    path: '/login',
+    component: Login,
+    hidden: true,
+    name: 'Login'
+  }
+]
+
+export default routes;

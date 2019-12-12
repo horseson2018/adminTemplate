@@ -1,0 +1,16 @@
+{
+  "id": "1440921",
+  "name": "czty-icon",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "11140575",
+      "name": "平底锅",
+      "font_class": "pingdiguot",
+      "unicode": "e60d",
+      "unicode_decimal": 58893
+    }
+  ]
+}

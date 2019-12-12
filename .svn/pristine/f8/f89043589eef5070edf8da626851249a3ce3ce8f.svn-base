@@ -1,0 +1,142 @@
+<template>
+  <div class='app-container' style='padding: 0px'>
+    <el-form
+      ref='changePasswordForm'
+      :rules='changePasswordFormRules'
+      :model='temp'
+      label-position='left'
+      label-width='70px'
+    >
+      <input type='password' name='password' style='position: absolute;left: -10000px;' />
+      <el-form-item label='原密码' prop='oldPassword'>
+        <el-input v-model='temp.oldPassword' type='password' autocomplete='off' />
+      </el-form-item>
+      <el-form-item label='新密码' prop='newPassword'>
+        <el-input v-model='temp.newPassword' type='password' autocomplete='off' />
+      </el-form-item>
+      <el-form-item label='再次输入' prop='passwordRepeat'>
+        <el-input v-model='temp.passwordRepeat' type='password' autocomplete='off' />
+      </el-form-item>
+    </el-form>
+    <div slot='footer' class='dialog-footer'>
+      <el-button type='primary' @click='changePassword()'>保存</el-button>
+      <el-button type='info' @click='sendDialogPassword'>取消</el-button>
+    </div>
+  </div>
+</template>
+
+<script>
+import { resetUserPwd } from '@/api/system/user';
+import { validPassword } from '@/utils/validate';
+
+export default {
+  name: 'ModifyPassword',
+  data() {
+    const checkOldPassword = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error('请输入原密码'));
+      } else {
+        callback();
+      }
+    };
+
+    const checkNewPassword = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error('请输入新密码'));
+      } else {
+        if (this.temp.passwordRepeat !== '') {
+          if (!validPassword(value)) {
+            callback(new Error('密码至少8位，要求必须大小写字母、数字！'));
+          } else {
+            this.$refs.changePasswordForm.validateField('passwordRepeat');
+          }
+          if (value === this.temp.oldPassword) {
+            callback(new Error('新密码与原密码不能相同'));
+          }
+        }
+        callback();
+      }
+    };
+    const checkPasswordRepeat = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error('请输入确认密码'));
+      } else if (value !== this.temp.newPassword) {
+        callback(new Error('两次输入密码不一致!'));
+      } else {
+        callback();
+      }
+    };
+
+    return {
+      changePasswordFormRules: {
+        oldPassword: [{ validator: checkOldPassword, trigger: 'blur' }],
+        newPassword: [{ validator: checkNewPassword, trigger: 'blur' }],
+        passwordRepeat: [{ validator: checkPasswordRepeat, trigger: 'blur' }]
+      },
+      temp: {
+        oldPassword: null,
+        newPassword: null,
+        passwordRepeat: null,
+        verification: null,
+        checkCode: null
+      },
+      dialogPasswordVisible: false,
+      oldReadonly: true,
+      newReadonly: true,
+      repetReadonly: true
+    };
+  },
+
+  created() {},
+
+  methods: {
+    resetTemp() {
+      this.temp.oldPassword = null;
+      this.temp.newPassword = null;
+      this.temp.passwordRepeat = null;
+      this.temp.verification = null;
+    },
+    logout() {
+      this.$store.dispatch('LogOut').then(() => {
+        window.location.reload();
+      });
+    },
+    changePassword() {
+      this.$refs.changePasswordForm.validate((valid) => {
+        if (valid) {
+          resetUserPwd(this.temp).then((response) => {
+            if (response.data.errno === 0) {
+              this.$message({
+                message: response.data.errmsg,
+                type: 'success'
+              });
+              this.resetTemp();
+              setTimeout(() => {
+                this.logout();
+              }, 1 * 1000);
+            } else {
+              this.$message({
+                message: response.data.errmsg,
+                type: 'false'
+              });
+            }
+          });
+        }
+      });
+    },
+    sendDialogPassword() {
+      this.dialogPasswordVisible = false;
+      this.$emit('sendDialogPassword', this.dialogPasswordVisible);
+    }
+  }
+};
+</script>
+
+<style rel='stylesheet/scss' lang='scss' >
+.verificationinput {
+  width: 100px;
+  height: 45px;
+  margin-top: -117px;
+  color: #2d2f33;
+}
+</style>

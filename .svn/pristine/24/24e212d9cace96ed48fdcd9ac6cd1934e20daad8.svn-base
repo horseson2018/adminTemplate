@@ -1,0 +1,78 @@
+<template>
+  <div :class="'s-w ' + (isCollapse?'hide-nav-bar':'')">
+    <el-scrollbar :native="false">
+      <el-container>
+        <NavBar />
+        <el-container>
+          <el-aside width="240px">
+            <SliderBar />
+          </el-aside>
+          <el-main style="background: #ECEEEF">
+            <TagView />
+            <AppMain />
+          </el-main>
+        </el-container>
+      </el-container>
+    </el-scrollbar>
+  </div>
+</template>
+
+<script>
+import NavBar from './components/navBar'
+import SliderBar from './components/sliderBar'
+import TagView from './components/tagView'
+import AppMain from './components/appMain'
+
+export default {
+  name: 'Layout',
+  components: {
+    NavBar,
+    SliderBar,
+    AppMain,
+    TagView
+  },
+  computed: {
+    isCollapse() {
+      return this.$store.getters.isCollapse
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.el-aside{
+  width:240px !important;
+  transition: width 0.15s;
+}
+.s-w{
+  height:100%;
+}
+.el-scrollbar{
+  height:100%;
+}
+/deep/ .el-scrollbar__wrap {
+  overflow-x: hidden !important;
+}
+.hide-nav-bar{
+  .el-aside{
+    width:36px !important;
+  }
+  .wrapper-tag{
+    left:37px !important;
+  }
+  .nav-el-menu-vertical{
+    width: 36px;
+  }
+  .el-submenu > .el-submenu__title {
+    padding: 0 10px 0 10px !important;
+  }
+  .el-submenu {
+    .icon-el{
+      width: 18px;
+    }
+    .el-submenu__icon-arrow{
+      display: none;
+    }
+  }
+}
+</style>

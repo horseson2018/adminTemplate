@@ -1,0 +1,104 @@
+import request from '@/utils/request'
+
+// 查询信息代码列表
+export function getCodeList() {
+  return request({
+    url: '/message/code/list',
+    method: 'get',
+  })
+}
+
+// 信息录入
+export function infoWriteIn(param) {
+  return request({
+    url: '/message/task',
+    method: 'post',
+    data: param
+  })
+}
+
+// 分页查询信息列表
+export function infoListPages(param) {
+  return request({
+    url: '/message/task/list',
+    method: 'get',
+    params: param
+  })
+}
+
+// 提交初/终审
+export function infoReply(param) {
+  return request({
+    url: '/message/reply',
+    method: 'post',
+    data: param
+  })
+}
+
+// 修改信息
+export function infoChange(param) {
+  return request({
+    url: '/message/task',
+    method: 'put',
+    data: param
+  })
+}
+
+// 删除
+export function infoDelete(param) {
+  return request({
+    url: `/message/task/${param}`,
+    method: 'delete',
+  })
+}
+
+// 分页查询
+export function listmsg(param) {
+  return request({
+    url: '/message/task/listMsg',
+    method: 'get',
+    params: param
+  })
+}
+
+// 审核结果查询
+export function auditSearch(param) {
+  return request({
+    url: '/message/reply/list',
+    method: 'get',
+    params: param
+  })
+}
+
+// 审核结果提醒
+export function rusultAudit() {
+  return request({
+    url: '/message/reply/remind',
+    method: 'get',
+  })
+}
+
+// 审核结果状态修改
+export function updateStatus(param) {
+  return request({
+    url: `/message/reply/updateStatus/${param}`,
+    method: 'put',
+  })
+}
+
+// 发布/驳回/撤销 1：发布 2：驳回 3：撤销
+export function cancelInfo(param) {
+  return request({
+    url: '/message/reply/updateStatus',
+    method: 'put',
+    params: param
+  })
+}
+
+// 审核结果提醒查询
+export function getNotices() {
+  return request({
+    url: '/message/reply/remind',
+    method: 'get'
+  })
+}

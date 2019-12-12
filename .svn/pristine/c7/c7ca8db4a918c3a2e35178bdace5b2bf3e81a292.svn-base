@@ -1,0 +1,399 @@
+<template>
+  <div class='app-container'>
+    <el-form :model='queryParams' :inline='true'>
+      <el-form-item label=''>
+        <el-input
+          v-model='queryParams.searchValue'
+          placeholder='请输入姓名/手机号'
+          clearable
+          style='width: 240px'
+          @keyup.enter.native='handleQuery'
+        />
+      </el-form-item>
+      <el-form-item label=''>
+        <el-select
+          v-model='queryParams.role'
+          placeholder='请选择角色'
+          clearable
+          style='width: 240px'
+        >
+          <el-option
+            v-for='dict in statusOptions'
+            :key='dict.roleId'
+            :label='dict.roleName'
+            :value='dict.roleId'
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-button
+        type='primary'
+        icon='el-icon-search'
+        size='small'
+        @click='handleQuery'>搜索</el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-row :gutter='10' class='mb8'>
+      <el-col :span='1.5'>
+        <el-button
+          type='primary'
+          icon='el-icon-plus'
+          size='mini'
+          @click='handleAdd'
+          v-hasPermi='["system:role:add"]'
+        >新增</el-button>
+      </el-col>
+      <el-col :span='1.5'>
+        <el-button
+          type='success'
+          icon='el-icon-edit'
+          size='mini'
+          :disabled='single'
+          @click='handleUpdate'
+          v-hasPermi='["system:role:edit"]'
+        >修改</el-button>
+      </el-col>
+      <el-col :span='1.5'>
+        <el-button
+          type='danger'
+          icon='el-icon-delete'
+          size='mini'
+          :disabled='multiple'
+          @click='handleDelete'
+          v-hasPermi='["system:role:remove"]'
+        >删除</el-button>
+      </el-col>
+      <!-- <el-col :span='1.5'>
+        <el-button
+          type='warning'
+          icon='el-icon-download'
+          size='mini'
+          @click='handleExport'
+          v-hasPermi='["system:post:export"]'
+        >导出</el-button>
+      </el-col> -->
+    </el-row>
+
+    <el-table v-loading='loading' :data='auditorList' @selection-change='handleSelectionChange'>
+      <el-table-column type='selection' width='55' align='center' />
+      <el-table-column label='姓名' prop='name' align="center"/>
+      <el-table-column
+        label='角色'
+        prop='role'
+        align="center"
+        :formatter="formatRoleType"/>
+      <el-table-column label='手机号码' prop='phone'  align="center"/>
+      <el-table-column label='操作' align='center' class-name='small-padding fixed-width'>
+        <template slot-scope='scope'>
+          <el-button
+            size='mini'
+            type='text'
+            icon='el-icon-edit'
+            @click='handleUpdate(scope.row)'
+            v-hasPermi='["system:role:edit"]'
+          >修改</el-button>
+          <el-button
+            size='mini'
+            type='text'
+            icon='el-icon-delete'
+            @click='handleDelete(scope.row)'
+            v-hasPermi='["system:role:remove"]'
+          >删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <pagination
+      v-show='total>0'
+      :total='total'
+      :page.sync='queryParams.pageNum'
+      :limit.sync='queryParams.pageSize'
+      @pagination='getList'
+    />
+
+    <!-- 添加或修改审核人员对话框 -->
+    <el-dialog :title='title' :visible.sync='open' width='500px' custom-class="custom-dialog">
+      <el-form ref='form' :model='form' :rules='rules' label-width='80px'>
+        <el-form-item label='姓名' prop='name'>
+          <el-input v-model='form.name' placeholder='请输入姓名'></el-input>
+        </el-form-item>
+        <el-form-item label='角色' prop="role">
+          <el-select
+            v-model='form.role'
+            placeholder='请选择角色'
+            clearable
+            style="width: 100%"
+          >
+            <el-option
+              v-for='dict in statusOptions'
+              :key='dict.roleId'
+              :label='dict.roleName'
+              :value='dict.roleId'
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label='手机号' prop="phone">
+          <el-input
+            v-model='form.phone'
+            type='text'
+            placeholder='请输入手机号'></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot='footer' class='dialog-footer'>
+        <el-button type='primary' @click='submitForm'>确 定</el-button>
+        <el-button @click='cancel'>取 消</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  listAudit, getAuditInfo, delAuditor, addAuditor, updateAuditor, exportAuditor
+} from '@/api/deploy/auditor';
+import Pagination from '@/components/Pagination';
+import { validPhoneNum, isArray } from '@/utils/validate'
+
+export default {
+  name: 'Auditor',
+  data() {
+    const checkUsername = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error('用户名不能为空'));
+      } else {
+        callback();
+      }
+    };
+    const validateRole = (rule, value, callback) => {
+      if (value === '' || value === undefined || value === null) {
+        callback(new Error('角色不能为空'));
+      }
+      callback()
+    };
+    const validatePhone = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('手机号不能为空'));
+      } else if (!validPhoneNum(value)) {
+        callback(new Error('请检查手机号！'));
+      }
+      callback()
+    };
+    return {
+      // 遮罩层
+      loading: true,
+      // 选中数组
+      ids: [],
+      // 非单个禁用
+      single: true,
+      // 非多个禁用
+      multiple: true,
+      // 总条数
+      total: 0,
+      // 表格数据
+      auditorList: [],
+      // 弹出层标题
+      title: '',
+      // 是否显示弹出层
+      open: false,
+      // 状态数据字典
+      statusOptions: [{
+        roleId: 0,
+        roleName: '初审领导'
+      }, {
+        roleId: 1,
+        roleName: '终审领导'
+      }],
+      // 查询参数
+      queryParams: {
+        pageNum: 1,
+        pageSize: 10,
+        searchValue: '',
+        role: '',
+        phone: ''
+      },
+      // 表单参数
+      form: {},
+      // 表单校验
+      rules: {
+        name: [
+          {
+            required: true, validator: checkUsername, trigger: 'blur'
+          }
+        ],
+        role: [
+          {
+            required: true, validator: validateRole, trigger: 'blur'
+          }
+        ],
+        phone: [
+          {
+            required: true, validator: validatePhone, trigger: 'blur'
+          }
+        ]
+      }
+    };
+  },
+  components: {
+    Pagination
+  },
+  mounted() {
+    this.getList();
+  },
+  methods: {
+    formatRoleType(row) {
+      let roleName = ''
+      switch (row.role) {
+        case 0:
+          roleName = '初审领导';
+          break;
+        case 1:
+          roleName = '终审领导';
+          break;
+        default:
+          roleName = '';
+          break;
+      }
+      return roleName
+    },
+    /** 查询审核人员列表 */
+    getList() {
+      this.loading = true;
+      listAudit(this.queryParams).then(
+        (response) => {
+          this.auditorList = response.rows;
+          this.total = response.total;
+          this.loading = false;
+        }
+      );
+    },
+    // 取消按钮
+    cancel() {
+      this.open = false;
+      this.reset();
+    },
+    // 表单重置
+    reset() {
+      this.form = {
+        name: '',
+        role: '',
+        phone: ''
+      };
+    },
+    /** 搜索按钮操作 */
+    handleQuery() {
+      this.queryParams.pageNum = 1;
+      this.getList();
+    },
+    /** 重置按钮操作 */
+    resetQuery() {
+      this.dateRange = [];
+      this.handleQuery();
+    },
+    // 多选框选中数据
+    handleSelectionChange(selection) {
+      this.ids = selection.map((item) => item.id)
+      this.single = selection.length !== 1
+      this.multiple = !selection.length
+    },
+    /** 新增按钮操作 */
+    handleAdd() {
+      this.reset();
+      this.open = true;
+      this.title = '新增审核人员';
+      this.$nextTick(() => {
+        this.resetForm('form')
+      })
+    },
+    /** 修改按钮操作 */
+    handleUpdate(row) {
+      this.reset();
+      const id = row.id || this.ids[0]
+      getAuditInfo(id).then((response) => {
+        this.form = response.data;
+        this.open = true;
+        this.title = '修改审核人员';
+        this.$nextTick(() => {
+          this.resetForm('form')
+        })
+      });
+    },
+    /** 提交按钮 */
+    submitForm() {
+      this.$refs.form.validate((valid) => {
+        if (valid) {
+          if (this.form.id !== undefined) {
+            updateAuditor(this.form).then((response) => {
+              if (response.code === 200) {
+                this.$message.success('修改成功');
+                this.open = false;
+                this.getList();
+              } else {
+                this.$message.error(response.msg);
+              }
+            });
+          } else {
+            addAuditor(this.form).then((response) => {
+              if (response.code === 200) {
+                this.$message.success('新增成功');
+                this.open = false;
+                this.getList();
+              } else {
+                this.$message.error(response.msg);
+              }
+            });
+          }
+        }
+      });
+    },
+    /** 删除按钮操作 */
+    handleDelete(row) {
+      let auditIds = row.id || this.ids
+      if (isArray(auditIds)) {
+        auditIds = auditIds.join()
+      }
+      this.$confirm('是否确认删除?', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => delAuditor(auditIds)).then(() => {
+        this.getList();
+        this.$message.success('删除成功');
+      }).catch(() => {});
+    },
+    /** 导出按钮操作 */
+    handleExport() {
+      const queryParams = this.queryParams;
+      this.$confirm('是否确认导出所有角色数据项?', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => exportAuditor(queryParams)).then((response) => {
+        this.download(response.msg);
+      }).catch(() => {});
+    },
+    resetForm(formName) {
+      this.$refs[formName].clearValidate();
+    }
+  }
+};
+</script>
+<style lang="scss">
+  .custom-dialog {
+    .el-dialog__header {
+      padding: 20px;
+      border-bottom: 1px solid $borderLightGray;
+    }
+    .el-dialog__body {
+      padding: 20px 20px 0;
+    }
+    .el-form {
+      .el-form-item {
+        margin-bottom: 20px;
+      }
+    }
+    .el-dialog__footer {
+      padding-top: 0;
+    }
+  }
+</style>

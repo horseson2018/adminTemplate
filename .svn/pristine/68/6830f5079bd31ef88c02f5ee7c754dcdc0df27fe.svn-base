@@ -1,0 +1,216 @@
+<template>
+  <div>
+    <el-row :gutter="20">
+      <el-col :span="6">
+        <div class="info-module">
+          <p class="info-title">信息代码</p>
+          <div class="info-input">
+            <el-select v-model="infoCode" placeholder="请选择">
+              <el-option
+                v-for="item in options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value">
+              </el-option>
+            </el-select>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    <el-row :gutter="20">
+      <el-col :span="8">
+        <div class="info-module">
+          <p class="info-title">信息的开始时间</p>
+          <div class="info-input">
+            <el-date-picker
+              v-model="date1"
+              type="date"
+              placeholder="选择日期">
+            </el-date-picker>
+            <el-time-picker
+              v-model="time1"
+              :picker-options="{
+                selectableRange: '18:30:00 - 20:30:00'
+              }"
+              placeholder="任意时间点">
+            </el-time-picker>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="8">
+        <div class="info-module">
+          <p class="info-title">信息的结束时间</p>
+          <div class="info-input">
+            <el-date-picker
+              v-model="date2"
+              type="date"
+              placeholder="选择日期">
+            </el-date-picker>
+            <el-time-picker
+              v-model="time2"
+              :picker-options="{
+                selectableRange: '18:30:00 - 20:30:00'
+              }"
+              placeholder="任意时间点">
+            </el-time-picker>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    <el-row>
+      <el-col :span="18">
+        <div class="info-module">
+          <p class="info-title">地区选择</p>
+          <div class="info-input">
+            <div class="area-select">
+              <el-checkbox
+                :indeterminate="isIndeterminate"
+                v-model="checkAll"
+                @change="handleCheckAllChange">
+                全选
+              </el-checkbox>
+              <div style="margin: 15px 0;"></div>
+              <el-checkbox-group v-model="checkedCities" @change="handleCheckedCitiesChange">
+                <el-checkbox v-for="city in cities" :label="city" :key="city">{{city}}</el-checkbox>
+              </el-checkbox-group>
+            </div>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    <el-row>
+      <el-col :span="24">
+        <div class="info-module">
+          <p class="info-title">发送给用户的信息内容</p>
+          <div class="info-input">
+            <el-input
+              type="textarea"
+              :autosize="{ minRows: 10, maxRows: 10}"
+              resize="none"
+              maxlength="68"
+              placeholder="请输入内容"
+              v-model="sendContent"
+              show-word-limit>
+            </el-input>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    <div class="buttons">
+      <el-button type="primary">确定</el-button>
+      <el-button type="primary">重置</el-button>
+    </div>
+  </div>
+</template>
+
+<script>
+
+export default {
+  name: 'InfoInput',
+  data() {
+    return {
+      infoCode: '',
+      options: [{
+        label: '选择1',
+        value: '1'
+      }, {
+        label: '选择2',
+        value: '2'
+      }],
+      date1: '',
+      time1: new Date(2016, 9, 10, 18, 40),
+      date2: '',
+      time2: new Date(2016, 9, 10, 18, 40),
+      checkAll: false,
+      checkedCities: [],
+      cities: ['上海', '北京', '广州', '深圳'],
+      isIndeterminate: false,
+      sendContent: '',
+    }
+  },
+  methods: {
+    handleCheckAllChange(val) {
+      this.checkedCities = val ? this.cities : [];
+      this.isIndeterminate = false;
+    },
+    handleCheckedCitiesChange(value) {
+      const checkedCount = value.length;
+      this.checkAll = checkedCount === this.cities.length;
+      this.isIndeterminate = checkedCount > 0 && checkedCount < this.cities.length;
+    }
+  }
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style lang="scss">
+  .info-module{
+    margin-bottom: 15px;
+    .el-scrollbar{
+      overflow-y: auto;
+    }
+    .info-title{
+      text-align: left;
+      font-size: 14px;
+      color: #353535;
+      line-height: 30px;
+    }
+    .info-input{
+      .area-select{
+        padding: 20px;
+        border: 1px solid #d3d3d3;
+        .el-checkbox__inner{
+          width: 20px;
+          height: 20px;
+        }
+        .el-checkbox__input.is-checked .el-checkbox__inner,
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner{
+          background-color: #fff;
+          border-color: #409EFF;
+        }
+        .el-checkbox__inner::after{
+          border:2px solid #409EFF;
+          border-left: 0;
+          border-top: 0px;
+          height: 13px;
+          width: 5px;
+          left: 6px;
+          top: 0px;
+        }
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner::before{
+          background-color: #409EFF;
+        }
+        .el-checkbox__input.is-checked+.el-checkbox__label{
+          color: #353535;
+        }
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner::before{
+          height: 17px;
+          top: 1px;
+        }
+      }
+      .el-textarea__inner{
+        padding: 10px;
+      }
+      .el-input__count{
+        color: red;
+        font-size: 14px;
+        bottom:10px;
+        &::before{
+          content:'（你已经录入了 ';
+          color: #353535;
+        }
+        &::after{
+          content:' 字）';
+          color: #353535;
+        }
+      }
+    }
+  }
+  .buttons{
+    margin-top: 20px;
+    text-align: center;
+    .el-button{
+      padding: 12px 35px;
+    }
+  }
+</style>

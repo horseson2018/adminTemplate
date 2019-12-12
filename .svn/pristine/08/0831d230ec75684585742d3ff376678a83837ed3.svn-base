@@ -1,0 +1,131 @@
+<template>
+  <div class='app-container'>
+    <el-form :model='listQuery' :inline='true'>
+      <el-form-item label=''>
+        <el-input
+          v-model='listQuery.content'
+          placeholder='征文内容'
+          clearable
+          size='small'
+          style='width: 240px'
+          @keyup.enter.native='handleQuery'
+        />
+      </el-form-item>
+      <el-form-item label=''>
+        <el-input
+          v-model='listQuery.phone'
+          placeholder='手机号码'
+          clearable
+          size='small'
+          style='width: 240px'
+          @keyup.enter.native='handleQuery'
+        />
+      </el-form-item>
+      <el-form-item label=''>
+        <el-input
+          v-model='listQuery.eventId'
+          placeholder='活动标识'
+          clearable
+          size='small'
+          style='width: 240px'
+          @keyup.enter.native='handleQuery'
+        />
+      </el-form-item>
+      <el-form-item label=''>
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          value-format='yyyy-MM-dd'
+          range-separator="-"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          size='small'
+          style='width: 240px'>
+        </el-date-picker>
+      </el-form-item>
+      <el-form-item>
+        <el-button
+        type='primary'
+        icon='el-icon-search'
+        size='mini'
+        @click='handleQuery'>搜索</el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-table v-loading='loading' :data='tableDate'>
+      <el-table-column label='手机号码' prop='phone' />
+      <el-table-column label='活动标识' prop='eventId' />
+      <el-table-column label='征文内容' prop='content' :show-overflow-tooltip='true'/>
+      <el-table-column label="上传时间" align="center" :formatter="formatTime"/>
+    </el-table>
+
+    <pagination
+      v-show='total>0'
+      :total='total'
+      :page.sync='listQuery.pageNum'
+      :limit.sync='listQuery.pageSize'
+      @pagination='getList'
+    />
+  </div>
+</template>
+
+<script>
+import Pagination from '@/components/Pagination';
+import listNewsSms from '@/api/article/newsAgency';
+import { parseTime } from '@/utils/xhkx';
+
+export default {
+  name: 'NewsAgency',
+  data() {
+    return {
+      dateRange: [],
+      // 查询参数
+      listQuery: {
+        pageNum: 1,
+        pageSize: 10,
+        phone: null,
+        content: null,
+        eventId: null,
+        beginTime: null,
+        endTime: null,
+      },
+      // 表格数据总条目数
+      total: 0,
+      // 表格数据
+      tableDate: [],
+      // 遮罩层
+      loading: true
+    };
+  },
+  components: {
+    Pagination
+  },
+  mounted() {
+    this.getList();
+  },
+  methods: {
+    /** 查询短信征文列表 */
+    getList() {
+      this.loading = true;
+      if (this.dateRange !== []) {
+        this.listQuery.beginTime = this.dateRange[0];
+        this.listQuery.endTime = this.dateRange[1];
+      }
+      listNewsSms(this.listQuery).then((response) => {
+        this.tableDate = response.rows;
+        this.total = response.total;
+        this.loading = false;
+      });
+    },
+    /** 搜索按钮操作 */
+    handleQuery() {
+      this.listQuery.pageNum = 1;
+      this.getList();
+    },
+    /** 格式化时间 */
+    formatTime(row) {
+      return parseTime(row.uploadTime)
+    }
+  }
+};
+</script>

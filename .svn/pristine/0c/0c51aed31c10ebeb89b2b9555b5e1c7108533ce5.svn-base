@@ -1,0 +1,102 @@
+<template>
+  <div class="menu-wrapper">
+    <el-scrollbar :native="false" class="menu-scroll">
+      <el-menu
+        :default-active="$route.path"
+        class="nav-el-menu-vertical"
+        :unique-opened="true"
+        :collapse="isCollapse"
+        :collapse-transition= 'false'
+      >
+        <ItemBar
+          v-for="item in routers"
+          :key="item.path"
+          :item="item"
+          :base-path="item.path"
+        />
+      </el-menu>
+    </el-scrollbar>
+  </div>
+</template>
+
+<script>
+import ItemBar from './itemBar'
+
+export default {
+  name: 'SliderBar',
+  components: {
+    ItemBar
+  },
+  computed: {
+    routers() {
+      return this.$store.getters.routers
+    },
+    isCollapse() {
+      return this.$store.getters.isCollapse
+    }
+  }
+}
+</script>
+<style lang="scss">
+  .menu-wrapper{
+    .menu-scroll {
+      background: $menuBg;
+    }
+    .el-menu{
+      border:0;
+      width:240px;
+      transition: 0.15s;
+      background: $menuBg;
+    }
+    .el-scrollbar{
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      padding-top: 70px;
+      transition: padding-top .3s;
+      border-right: 1px solid $borderLightGray;
+    }
+    .el-scrollbar__wrap {
+      overflow-x: hidden;
+    }
+    .icon-el {
+      width: 18px;
+    }
+    .iconfont {
+      display: inline-block !important;
+      vertical-align: middle;
+      margin-right: 8px;
+      text-align: center;
+      font-size: 18px;
+    }
+    .el-menu-item, .el-submenu__title {
+      color: $fontWhite;
+    }
+    .el-submenu__title:hover {
+      background: $menuOpenedBg;
+    }
+    .el-submenu__title i {
+      color: $fontWhite;
+    }
+    .el-submenu.is-opened {
+      background: $menuOpenedBg;
+      .el-submenu__title {
+        color: $menuActiveFont;
+
+        i {
+          color: $menuActiveFont;
+        }
+      }
+      .el-menu {
+        background: $menuOpenedBg;
+      }
+    }
+    .el-menu-item.is-active {
+      color: $menuActiveFont;
+    }
+    .el-menu-item:focus, .el-menu-item:hover {
+      color: $menuActiveFont;
+      background-color: $menuOpenedBg !important;
+    }
+  }
+</style>

@@ -1,0 +1,52 @@
+import request from '@/utils/request'
+
+// 分页查询
+export function listmsg(param) {
+  return request({
+    url: '/message/task/listMsg',
+    method: 'get',
+    params: param
+  })
+}
+
+// 审核结果查询
+export function infoReply(param) {
+  return request({
+    url: '/message/reply/list',
+    method: 'get',
+    params: param
+  })
+}
+
+// 审核结果查询
+export function rusultAudit() {
+  return request({
+    url: '/message/reply/remind',
+    method: 'get',
+  })
+}
+
+// 1.6.4.审核结果状态修改
+export function updateStatus(param) {
+  return request({
+    url: `/message/reply/updateStatus/${param}`,
+    method: 'put',
+  })
+}
+
+// 驳回撤销
+export function rejectAudit(param) {
+  return request({
+    url: '/message/reply/updateStatus',
+    method: 'put',
+    params: param
+  })
+}
+
+// 审核结果提醒查询
+export function getNotices() {
+  return request({
+    url: '/message/reply/remind',
+    method: 'get'
+  })
+}

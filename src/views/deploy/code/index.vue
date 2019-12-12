@@ -1,0 +1,407 @@
+<template>
+  <div class='app-container'>
+    <el-form :model='queryParams' :inline='true'>
+      <el-form-item label=''>
+        <el-input
+          v-model='queryParams.messageCode'
+          placeholder='请输入信息代码'
+          clearable
+          style='width: 240px'
+          @keyup.enter.native='handleQuery'
+        />
+      </el-form-item>
+      <el-form-item label=''>
+        <el-input
+          v-model='queryParams.messageName'
+          placeholder='请输入信息代码名称'
+          clearable
+          style='width: 240px'
+          @keyup.enter.native='handleQuery'
+        />
+      </el-form-item>
+      <el-form-item label=''>
+        <el-select
+            v-model='queryParams.status'
+            placeholder='请选择状态'
+            clearable
+          >
+            <el-option
+              v-for='dict in statusOptions'
+              :key='dict.value'
+              :label='dict.label'
+              :value='dict.value'
+            />
+          </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-button
+        type='primary'
+        icon='el-icon-search'
+        size='small'
+        @click='handleQuery'>搜索</el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-row :gutter='10' class='mb8'>
+      <el-col :span='1.5'>
+        <el-button
+          type='primary'
+          icon='el-icon-plus'
+          size='mini'
+          @click='handleAdd'
+          v-hasPermi='["deploy:code:add"]'
+        >新增</el-button>
+      </el-col>
+      <el-col :span='1.5'>
+        <el-button
+          type='success'
+          icon='el-icon-edit'
+          size='mini'
+          :disabled='single'
+          @click='handleUpdate'
+          v-hasPermi='["deploy:code:edit"]'
+        >修改</el-button>
+      </el-col>
+      <el-col :span='1.5'>
+        <el-button
+          type='danger'
+          icon='el-icon-delete'
+          size='mini'
+          :disabled='multiple'
+          @click='handleDelete'
+          v-hasPermi='["deploy:code:remove"]'
+        >删除</el-button>
+      </el-col>
+      <!-- <el-col :span='1.5'>
+        <el-button
+          type='warning'
+          icon='el-icon-download'
+          size='mini'
+          @click='handleExport'
+          v-hasPermi='["deploy:code:export"]'
+        >导出</el-button>
+      </el-col> -->
+    </el-row>
+
+    <el-table v-loading='loading' :data='auditorList' @selection-change='handleSelectionChange'>
+      <el-table-column type='selection' width='55' align='center' />
+      <el-table-column label='信息代码' prop='messageCode' align="center"/>
+      <el-table-column
+        label='信息代码名称'
+        prop='messageName'
+        align="center"
+        :show-overflow-tooltip='true'/>
+      <el-table-column
+        label='状态'
+        prop='status'
+        align="center"
+        :formatter="formatType"/>
+      <el-table-column label='创建人' align='center' prop='createBy'/>
+      <el-table-column label='创建时间' align='center' prop='createTime'/>
+      <el-table-column label='操作' align='center' class-name='small-padding fixed-width'>
+        <template slot-scope='scope'>
+          <el-button
+            size='mini'
+            type='text'
+            icon='el-icon-edit'
+            @click='handleUpdate(scope.row)'
+            v-hasPermi='["deploy:code:edit"]'
+          >修改</el-button>
+          <el-button
+            size='mini'
+            type='text'
+            icon='el-icon-delete'
+            @click='handleDelete(scope.row)'
+            v-hasPermi='["deploy:code:remove"]'
+          >删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <pagination
+      v-show='total>0'
+      :total='total'
+      :page.sync='queryParams.pageNum'
+      :limit.sync='queryParams.pageSize'
+      @pagination='getList'
+    />
+
+    <!-- 添加或修改审核人员对话框 -->
+    <el-dialog :title='title' :visible.sync='open' width='500px' custom-class="custom-dialog">
+      <el-form ref='form' :model='form' :rules='rules' label-width='80px'>
+        <el-form-item label='信息代码' prop='messageCode'>
+          <el-input
+            v-model='form.messageCode'
+            placeholder='请输入代码'></el-input>
+        </el-form-item>
+        <el-form-item label='代码名称' prop="messageName">
+          <el-input
+            v-model='form.messageName'
+            type='text'
+            placeholder='请输入名称'></el-input>
+        </el-form-item>
+        <el-form-item label='状态' prop="status">
+          <el-radio-group v-model='form.status'>
+            <el-radio
+              v-for='dict in statusOptions'
+              :key='dict.value'
+              :label='dict.value'
+            >{{dict.label}}</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <div slot='footer' class='dialog-footer'>
+        <el-button type='primary' @click='submitForm'>确 定</el-button>
+        <el-button @click='cancel'>取 消</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  listCode, getCodeInfo, delCode, addCode, updateCode, exportCode
+} from '@/api/deploy/code';
+import Pagination from '@/components/Pagination';
+import { isArray } from '@/utils/validate'
+
+export default {
+  name: 'Code',
+  data() {
+    const checkInfoCode = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error('信息代码不能为空'));
+      } else {
+        callback();
+      }
+    };
+    const checkInfoName = (rule, value, callback) => {
+      if (value === '' || value === undefined || value === null) {
+        callback(new Error('信息代码名称不能为空'));
+      }
+      callback()
+    };
+    const checkInfoStu = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('状态不能为空'));
+      }
+      callback()
+    };
+    return {
+      // 遮罩层
+      loading: true,
+      // 选中数组
+      ids: [],
+      // 非单个禁用
+      single: true,
+      // 非多个禁用
+      multiple: true,
+      // 总条数
+      total: 0,
+      // 表格数据
+      auditorList: [],
+      // 弹出层标题
+      title: '',
+      // 是否显示弹出层
+      open: false,
+      // 状态数据字典
+      statusOptions: [{
+        value: 0,
+        label: '启用'
+      }, {
+        value: 1,
+        label: '禁用'
+      }],
+      // 查询参数
+      queryParams: {
+        pageNum: 1,
+        pageSize: 10,
+        messageCode: '',
+        messageName: '',
+        status: ''
+      },
+      // 表单参数
+      form: {},
+      // 表单校验
+      rules: {
+        messageCode: [
+          {
+            required: true, validator: checkInfoCode, trigger: 'blur'
+          }
+        ],
+        messageName: [
+          {
+            required: true, validator: checkInfoName, trigger: 'blur'
+          }
+        ],
+        status: [
+          {
+            required: true, validator: checkInfoStu, trigger: 'blur'
+          }
+        ]
+      }
+    };
+  },
+  components: {
+    Pagination
+  },
+  mounted() {
+    this.getList();
+  },
+  methods: {
+    formatType(row) {
+      let name = ''
+      switch (row.status) {
+        case 0:
+          name = '启用';
+          break;
+        case 1:
+          name = '禁用';
+          break;
+        default:
+          name = '';
+          break;
+      }
+      return name
+    },
+    /** 查询审核人员列表 */
+    getList() {
+      this.loading = true;
+      listCode(this.queryParams).then(
+        (response) => {
+          this.auditorList = response.rows;
+          this.total = response.total;
+          this.loading = false;
+        }
+      );
+    },
+    // 取消按钮
+    cancel() {
+      this.open = false;
+      this.reset();
+    },
+    // 表单重置
+    reset() {
+      this.form = {
+        messageCode: '',
+        messageName: '',
+        status: 0
+      };
+    },
+    /** 搜索按钮操作 */
+    handleQuery() {
+      this.queryParams.pageNum = 1;
+      this.getList();
+    },
+    /** 重置按钮操作 */
+    resetQuery() {
+      this.dateRange = [];
+      this.handleQuery();
+    },
+    // 多选框选中数据
+    handleSelectionChange(selection) {
+      this.ids = selection.map((item) => item.id)
+      this.single = selection.length !== 1
+      this.multiple = !selection.length
+    },
+    /** 新增按钮操作 */
+    handleAdd() {
+      this.reset();
+      this.open = true;
+      this.title = '新增信息代码';
+      this.$nextTick(() => {
+        this.resetForm('form')
+      })
+    },
+    /** 修改按钮操作 */
+    handleUpdate(row) {
+      this.reset();
+      const id = row.id || this.ids[0]
+      getCodeInfo(id).then((response) => {
+        this.form = response.data;
+        this.open = true;
+        this.title = '修改信息代码';
+        this.$nextTick(() => {
+          this.resetForm('form')
+        })
+      });
+    },
+    /** 提交按钮 */
+    submitForm() {
+      this.$refs.form.validate((valid) => {
+        if (valid) {
+          if (this.form.id !== undefined) {
+            updateCode(this.form).then((response) => {
+              if (response.code === 200) {
+                this.$message.success('修改成功');
+                this.open = false;
+                this.getList();
+              } else {
+                this.$message.error(response.msg);
+              }
+            });
+          } else {
+            addCode(this.form).then((response) => {
+              if (response.code === 200) {
+                this.$message.success('新增成功');
+                this.open = false;
+                this.getList();
+              } else {
+                this.$message.error(response.msg);
+              }
+            });
+          }
+        }
+      });
+    },
+    /** 删除按钮操作 */
+    handleDelete(row) {
+      let auditIds = row.id || this.ids
+      if (isArray(auditIds)) {
+        auditIds = auditIds.join()
+      }
+      this.$confirm('是否确认删除?', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => delCode(auditIds)).then(() => {
+        this.getList();
+        this.$message.success('删除成功');
+      }).catch(() => {});
+    },
+    /** 导出按钮操作 */
+    handleExport() {
+      const queryParams = this.queryParams;
+      this.$confirm('是否确认导出所有角色数据项?', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => exportCode(queryParams)).then((response) => {
+        this.download(response.msg);
+      }).catch(() => {});
+    },
+    resetForm(formName) {
+      this.$refs[formName].clearValidate();
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+  /deep/ .custom-dialog {
+    .el-dialog__header {
+      padding: 20px;
+      border-bottom: 1px solid $borderLightGray;
+    }
+    .el-dialog__body {
+      padding: 20px 20px 0;
+    }
+    .el-form {
+      .el-form-item {
+        margin-bottom: 20px;
+      }
+    }
+    .el-dialog__footer {
+      padding-top: 0;
+    }
+  }
+</style>

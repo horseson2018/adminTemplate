@@ -1,0 +1,292 @@
+<template>
+  <div class="info-form">
+    <el-form :model="ruleForm"
+      :rules="rules"
+      ref="ruleForm">
+      <el-form-item label="信息代码" prop="infoCode">
+        <el-select v-model="ruleForm.infoCode" placeholder="请选择">
+          <el-option
+            v-for="item in options"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value">
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <el-row :gutter="20" class="hide-useless-requiedIcon">
+        <el-col :span="3">
+          <el-form-item label="信息的开始时间" prop="date1">
+            <el-date-picker
+              v-model="ruleForm.date1"
+              type="date"
+              placeholder="选择日期">
+            </el-date-picker>
+          </el-form-item>
+        </el-col>
+        <el-col :span="4">
+          <el-form-item label=" " prop="time1">
+            <el-time-picker
+              v-model="ruleForm.time1"
+              format="HH:mm"
+              placeholder="任意时间点">
+            </el-time-picker>
+          </el-form-item>
+        </el-col>
+        <el-col :span="3">
+          <el-form-item label="信息的结束时间" prop="date2">
+            <el-date-picker
+              v-model="ruleForm.date2"
+              type="date"
+              placeholder="选择日期">
+            </el-date-picker>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label=" " prop="time2">
+            <el-time-picker
+              v-model="ruleForm.time2"
+              format="HH:mm"
+              :picker-options="{
+                selectableRange: '18:30:00 - 20:30:00'
+              }"
+              placeholder="任意时间点">
+            </el-time-picker>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-form-item label="地区选择" prop="city" class="area-select">
+        <el-checkbox
+          :indeterminate="isIndeterminate"
+          v-model="checkAll"
+          @change="handleCheckAllChange">
+          全选
+        </el-checkbox>
+        <el-checkbox-group v-model="ruleForm.city" @change="handleCheckedCitiesChange">
+          <el-checkbox v-for="city in cities" :label="city" :key="city" name="city"></el-checkbox>
+        </el-checkbox-group>
+      </el-form-item>
+      <el-form-item label="信息内容" prop="sendContent">
+        <el-input
+          type="textarea"
+          :autosize="{ minRows: 10, maxRows: 10}"
+          resize="none"
+          maxlength="68"
+          placeholder="请输入内容"
+          v-model="ruleForm.sendContent"
+          show-word-limit>
+        </el-input>
+      </el-form-item>
+      <el-form-item class="buttons">
+        <el-button type="primary" @click="submitForm('ruleForm')">确定</el-button>
+        <el-button @click="resetForm('ruleForm')">重置</el-button>
+      </el-form-item>
+    </el-form>
+  </div>
+</template>
+
+<script>
+import * as httpRequest from '@/api/infoManage/infoList'
+import parseTime from '@/utils/xhkx'
+
+export default {
+  name: 'InfoInput',
+  data() {
+    return {
+      ruleForm: {
+        infoCode: '',
+        date1: '',
+        time1: '',
+        date2: '',
+        time2: '',
+        city: [],
+        sendContent: '',
+      },
+      rules: {
+        infoCode: [
+          { required: true, message: '请选择信息代码', trigger: 'change' }
+        ],
+        date1: [
+          {
+            type: 'date',
+            required: true,
+            message: '请选择日期',
+            trigger: 'change'
+          }
+        ],
+        date2: [
+          {
+            type: 'date',
+            required: true,
+            message: '请选择日期',
+            trigger: 'change'
+          }
+        ],
+        time1: [
+          {
+            type: 'date',
+            required: true,
+            message: '请选择时间',
+            trigger: 'change'
+          }
+        ],
+        time2: [
+          {
+            type: 'date',
+            required: true,
+            message: '请选择时间',
+            trigger: 'change'
+          }
+        ],
+        city: [
+          {
+            type: 'array',
+            required: true,
+            message: '请至少选择一个地区',
+            trigger: 'change'
+          }
+        ],
+        sendContent: [
+          { required: true, message: '请填写活动形式', trigger: 'blur' }
+        ]
+      },
+      options: [{
+        label: '选择1',
+        value: '1'
+      }, {
+        label: '选择2',
+        value: '2'
+      }],
+      checkAll: false,
+      cities: ['杭州', '丽水', '金华', '温州', '宁波', '舟山', '衢州', '台州', '嘉兴', '绍兴', '湖州'],
+      isIndeterminate: false,
+    }
+  },
+  mounted() {
+    this.init()
+  },
+  methods: {
+    init() {
+      httpRequest.getCodeList().then((res) => {
+        console.log(res)
+      })
+    },
+    handleCheckAllChange(val) {
+      this.ruleForm.city = val ? this.cities : [];
+      this.isIndeterminate = false;
+    },
+    handleCheckedCitiesChange(value) {
+      const checkedCount = value.length;
+      this.checkAll = checkedCount === this.cities.length;
+      this.isIndeterminate = checkedCount > 0 && checkedCount < this.cities.length;
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          console.log(parseTime(this.ruleForm.date1))
+          // console.log(this.ruleForm)
+          // const param = {
+          //   messageCode: this.ruleForm.infoCode,
+          //   areas: this.ruleForm.city,
+          //   content: this.ruleForm.sendContent
+          // }
+          // httpRequest.getCodeList(param).then((res) => {
+          //   console.log(res)
+          // })
+        } else {
+          console.log('error submit!!');
+        }
+      })
+    },
+    resetForm(formName) {
+      this.$refs[formName].resetFields();
+    }
+  }
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style lang="scss">
+  .info-form{
+    .el-form-item__label{
+      float: inherit;
+      line-height: 30px;
+      color: $formLabel;
+      font-weight: 400;
+    }
+    .hide-useless-requiedIcon{
+      .el-col:nth-child(even){
+        .el-form-item__label{
+          &::before{
+            display: none
+          }
+        }
+      }
+    }
+    .area-select{
+      .el-form-item__content{
+        padding: 10px 20px;
+        border: 1px solid #d3d3d3;
+        .el-checkbox__inner{
+          width: 20px;
+          height: 20px;
+        }
+        .el-checkbox__input.is-checked .el-checkbox__inner,
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner{
+          background-color: #fff;
+          border-color: #409EFF;
+        }
+        .el-checkbox__inner::after{
+          border:2px solid #409EFF;
+          border-left: 0;
+          border-top: 0px;
+          height: 13px;
+          width: 5px;
+          left: 6px;
+          top: 0px;
+        }
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner::before{
+          background-color: #409EFF;
+        }
+        .el-checkbox__input.is-checked+.el-checkbox__label{
+          color: #353535;
+        }
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner::before{
+          height: 17px;
+          top: 1px;
+        }
+      }
+    }
+    .el-textarea__inner{
+      padding: 10px;
+    }
+    .el-textarea{
+      .el-input__count{
+        color: red;
+        font-size: 14px;
+        bottom:10px;
+        &::before{
+          content:'（你已经录入了 ';
+          color: $formLabel;
+        }
+        &::after{
+          content:' 字）';
+          color: $formLabel;
+        }
+      }
+    }
+    .buttons{
+      margin-top: 20px;
+      text-align: center;
+      .el-button{
+        padding: 12px 35px;
+      }
+    }
+  }
+</style>
+<style lang="scss" scoped>
+  .info-form{
+    /deep/ .buttons{
+      margin-top: 40px;
+    }
+  }
+</style>

@@ -1,0 +1,369 @@
+<template>
+  <div class='app-container'>
+    <el-form :model='queryParams' :inline='true'>
+      <el-form-item label=''>
+        <el-select
+            v-model='queryParams.userAccount'
+            placeholder='请选择账号'
+            clearable
+          >
+            <el-option
+              v-for='(dict, index) in userOptions'
+              :key='index'
+              :label='dict.userName'
+              :value='dict.userName'
+            />
+          </el-select>
+      </el-form-item>
+      <el-form-item label=''>
+        <el-input
+          v-model='queryParams.phone'
+          placeholder='请输入手机号码'
+          clearable
+          style='width: 240px'
+          @keyup.enter.native='handleQuery'
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button
+        type='primary'
+        icon='el-icon-search'
+        size='small'
+        @click='handleQuery'>搜索</el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-row :gutter='10' class='mb8'>
+      <el-col :span='1.5'>
+        <el-button
+          type='primary'
+          icon='el-icon-plus'
+          size='mini'
+          @click='handleAdd'
+          v-hasPermi='["deploy:phone:add"]'
+        >新增</el-button>
+      </el-col>
+      <el-col :span='1.5'>
+        <el-button
+          type='success'
+          icon='el-icon-edit'
+          size='mini'
+          :disabled='single'
+          @click='handleUpdate'
+          v-hasPermi='["deploy:phone:edit"]'
+        >修改</el-button>
+      </el-col>
+      <el-col :span='1.5'>
+        <el-button
+          type='danger'
+          icon='el-icon-delete'
+          size='mini'
+          :disabled='multiple'
+          @click='handleDelete'
+          v-hasPermi='["deploy:phone:remove"]'
+        >删除</el-button>
+      </el-col>
+      <!-- <el-col :span='1.5'>
+        <el-button
+          type='warning'
+          icon='el-icon-download'
+          size='mini'
+          @click='handleExport'
+          v-hasPermi='["deploy:phone:export"]'
+        >导出</el-button>
+      </el-col> -->
+    </el-row>
+
+    <el-table v-loading='loading' :data='auditorList' @selection-change='handleSelectionChange'>
+      <el-table-column type='selection' width='55' align='center' />
+      <el-table-column label='账号' prop='userAccount' align="center"/>
+      <el-table-column
+        label='名称'
+        prop='name'
+        align="center"/>
+      <el-table-column
+        label='手机号码'
+        prop='phone'
+        align="center"/>
+      <el-table-column label='创建人' align='center' prop='createBy'/>
+      <el-table-column label='创建时间' align='center' prop='createTime'/>
+      <el-table-column label='操作' align='center' class-name='small-padding fixed-width'>
+        <template slot-scope='scope'>
+          <el-button
+            size='mini'
+            type='text'
+            icon='el-icon-edit'
+            @click='handleUpdate(scope.row)'
+            v-hasPermi='["deploy:phone:edit"]'
+          >修改</el-button>
+          <el-button
+            size='mini'
+            type='text'
+            icon='el-icon-delete'
+            @click='handleDelete(scope.row)'
+            v-hasPermi='["deploy:phone:remove"]'
+          >删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <pagination
+      v-show='total>0'
+      :total='total'
+      :page.sync='queryParams.pageNum'
+      :limit.sync='queryParams.pageSize'
+      @pagination='getList'
+    />
+
+    <!-- 添加或修改对话框 -->
+    <el-dialog :title='title' :visible.sync='open' width='500px'  custom-class="custom-dialog">
+      <el-form ref='form' :model='form' :rules='rules' label-width='80px'>
+        <el-form-item label='账号' prop="userAccount">
+          <el-select
+              v-model='form.userAccount'
+              placeholder='请选择账号'
+              clearable
+              style="width: 100%;"
+            >
+              <el-option
+                v-for='(dict, index) in userOptions'
+                :key='index'
+                :label='dict.userName'
+                :value='dict.userName'
+              />
+            </el-select>
+        </el-form-item>
+        <el-form-item label='名称'>
+          <el-input
+            v-model='form.name'
+            type='text'
+            placeholder='请输入名称'></el-input>
+        </el-form-item>
+        <el-form-item label='手机号码' prop="phone">
+          <el-input
+            v-model='form.phone'
+            type='text'
+            placeholder='请输入手机号码'></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot='footer' class='dialog-footer'>
+        <el-button type='primary' @click='submitForm'>确 定</el-button>
+        <el-button @click='cancel'>取 消</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  listAccPhone, getAccInfo, delAccPhone, addAccPhone, updateAccPhone, exportAccPhone,
+  listUser
+} from '@/api/deploy/phone';
+import Pagination from '@/components/Pagination';
+import { isArray, validPhoneNum } from '@/utils/validate'
+
+export default {
+  name: 'Phone',
+  data() {
+    const checkAcc = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error('账号不能为空'));
+      } else {
+        callback();
+      }
+    };
+    const checkPhone = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('手机号不能为空'));
+      } else if (!validPhoneNum(value)) {
+        callback(new Error('手机号不规范'));
+      }
+      callback()
+    };
+    return {
+      // 遮罩层
+      loading: true,
+      // 选中数组
+      ids: [],
+      // 非单个禁用
+      single: true,
+      // 非多个禁用
+      multiple: true,
+      // 总条数
+      total: 0,
+      // 表格数据
+      auditorList: [],
+      // 弹出层标题
+      title: '',
+      // 是否显示弹出层
+      open: false,
+      // 状态数据字典
+      userOptions: [{
+        value: 0,
+        label: '启用'
+      }, {
+        value: 1,
+        label: '禁用'
+      }],
+      // 查询参数
+      queryParams: {
+        pageNum: 1,
+        pageSize: 10,
+        userAccount: '',
+        phone: ''
+      },
+      // 表单参数
+      form: {},
+      // 表单校验
+      rules: {
+        userAccount: [
+          {
+            required: true, validator: checkAcc, trigger: 'blur'
+          }
+        ],
+        phone: [
+          {
+            required: true, validator: checkPhone, trigger: 'blur'
+          }
+        ]
+      }
+    };
+  },
+  components: {
+    Pagination
+  },
+  mounted() {
+    this.getlistUser()
+    this.getList()
+  },
+  methods: {
+    getlistUser() {
+      listUser().then(
+        (response) => {
+          this.userOptions = response.data
+        }
+      )
+    },
+    /** 查询列表 */
+    getList() {
+      this.loading = true;
+      listAccPhone(this.queryParams).then(
+        (response) => {
+          this.auditorList = response.rows;
+          this.total = response.total;
+          this.loading = false;
+        }
+      );
+    },
+    // 取消按钮
+    cancel() {
+      this.open = false;
+      this.reset();
+    },
+    // 表单重置
+    reset() {
+      this.form = {
+        userAccount: '',
+        name: '',
+        phone: ''
+      };
+    },
+    /** 搜索按钮操作 */
+    handleQuery() {
+      this.queryParams.pageNum = 1;
+      this.getList();
+    },
+    /** 重置按钮操作 */
+    resetQuery() {
+      this.dateRange = [];
+      this.handleQuery();
+    },
+    // 多选框选中数据
+    handleSelectionChange(selection) {
+      this.ids = selection.map((item) => item.id)
+      this.single = selection.length !== 1
+      this.multiple = !selection.length
+    },
+    /** 新增按钮操作 */
+    handleAdd() {
+      this.reset();
+      this.open = true;
+      this.title = '新增账号对应关系';
+      this.getlistUser()
+      this.$nextTick(() => {
+        this.resetForm('form')
+      })
+    },
+    /** 修改按钮操作 */
+    handleUpdate(row) {
+      this.reset();
+      const id = row.id || this.ids[0]
+      getAccInfo(id).then((response) => {
+        this.form = response.data;
+        this.open = true;
+        this.title = '修改账号对应关系';
+        this.$nextTick(() => {
+          this.resetForm('form')
+        })
+      });
+    },
+    /** 提交按钮 */
+    submitForm() {
+      this.$refs.form.validate((valid) => {
+        if (valid) {
+          if (this.form.id !== undefined) {
+            updateAccPhone(this.form).then((response) => {
+              if (response.code === 200) {
+                this.$message.success('修改成功');
+                this.open = false;
+                this.getList();
+              } else {
+                this.$message.error(response.msg);
+              }
+            });
+          } else {
+            addAccPhone(this.form).then((response) => {
+              if (response.code === 200) {
+                this.$message.success('新增成功');
+                this.open = false;
+                this.getList();
+              } else {
+                this.$message.error(response.msg);
+              }
+            });
+          }
+        }
+      });
+    },
+    /** 删除按钮操作 */
+    handleDelete(row) {
+      let auditIds = row.id || this.ids
+      if (isArray(auditIds)) {
+        auditIds = auditIds.join()
+      }
+      this.$confirm('是否确认删除?', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => delAccPhone(auditIds)).then(() => {
+        this.getList();
+        this.$message.success('删除成功');
+      }).catch(() => {});
+    },
+    /** 导出按钮操作 */
+    handleExport() {
+      const queryParams = this.queryParams;
+      this.$confirm('是否确认导出所有数据项?', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => exportAccPhone(queryParams)).then((response) => {
+        this.download(response.msg);
+      }).catch(() => {});
+    },
+    resetForm(formName) {
+      this.$refs[formName].clearValidate();
+    }
+  }
+};
+</script>

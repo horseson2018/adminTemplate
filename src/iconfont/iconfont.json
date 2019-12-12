@@ -1,0 +1,65 @@
+{
+  "id": "1440921",
+  "name": "czty-icon",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "12123768",
+      "name": "首页提示框错误",
+      "font_class": "shouyetishikuangcuowu",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
+      "icon_id": "12123769",
+      "name": "下拉（点击）",
+      "font_class": "xialadianji",
+      "unicode": "e602",
+      "unicode_decimal": 58882
+    },
+    {
+      "icon_id": "12123770",
+      "name": "系统管理",
+      "font_class": "xitongguanli",
+      "unicode": "e603",
+      "unicode_decimal": 58883
+    },
+    {
+      "icon_id": "12123771",
+      "name": "下拉（未点击）",
+      "font_class": "xialaweidianji",
+      "unicode": "e604",
+      "unicode_decimal": 58884
+    },
+    {
+      "icon_id": "12123772",
+      "name": "信息管理",
+      "font_class": "xinxiguanli",
+      "unicode": "e605",
+      "unicode_decimal": 58885
+    },
+    {
+      "icon_id": "12123773",
+      "name": "征文互动",
+      "font_class": "zhengwenhudong",
+      "unicode": "e606",
+      "unicode_decimal": 58886
+    },
+    {
+      "icon_id": "12223213",
+      "name": "告警播报",
+      "font_class": "gaojingbobao",
+      "unicode": "e607",
+      "unicode_decimal": 58887
+    },
+    {
+      "icon_id": "12283488",
+      "name": "配置管理",
+      "font_class": "peizhiguanli",
+      "unicode": "e608",
+      "unicode_decimal": 58888
+    }
+  ]
+}

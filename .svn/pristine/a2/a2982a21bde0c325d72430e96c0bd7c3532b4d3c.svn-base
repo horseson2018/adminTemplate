@@ -1,0 +1,28 @@
+// import Menu from '@/views/menu/menu'
+import Login from '@/views/login/login'
+import Dashboard from '@/views/dashboard/dashboard'
+import Layout from '@/views/layout/layout'
+
+const routes = [
+  {
+    path: '/',
+    component: Layout,
+    redirect: 'dashboard',
+    hidden: true,
+    children: [
+      {
+        path: 'dashboard',
+        component: Dashboard,
+        name: 'Dashboard'
+      }
+    ]
+  },
+  {
+    path: '/login',
+    component: Login,
+    hidden: true,
+    name: 'Login'
+  }
+]
+
+export default routes;

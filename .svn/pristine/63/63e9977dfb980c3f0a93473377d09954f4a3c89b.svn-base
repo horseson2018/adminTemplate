@@ -1,0 +1,362 @@
+<template>
+  <div class="info-form">
+    <el-form :model="ruleForm"
+      ref="ruleForm">
+      <!-- <el-row :gutter="20" style="margin-left: 0"> -->
+      <el-form-item label="信息代码" prop="infoCode">
+        <el-select v-model="ruleForm.infoCode" placeholder="请选择">
+          <el-option
+            v-for="item in options"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value">
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <!-- </el-row> -->
+      <el-form-item label="信息内容" prop="sendContent">
+        <el-col :span="16">
+          <el-input
+            type="textarea"
+            :autosize="{ minRows: 1, maxRows: 1}"
+            resize="none"
+            maxlength="68"
+            placeholder="请输入内容"
+            v-model="ruleForm.sendContent">
+          </el-input>
+        </el-col>
+      </el-form-item>
+      <el-form-item label="信息关键字">
+        <el-col :span="4">
+          <el-input v-model="ruleForm.keyword1" placeholder="关键字1">
+          </el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input v-model="ruleForm.keyword2" placeholder="关键字2" style="margin-left: 20px;">
+          </el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input v-model="ruleForm.keyword3" placeholder="关键字3" style="margin-left: 40px;">
+          </el-input>
+        </el-col>
+      </el-form-item>
+      <el-row :gutter="20" style="margin-left: 0">
+        <el-form-item label="排序方式" prop="sortType" style="float: left;margin-right: 20px;">
+          <el-select v-model="ruleForm.sortType" placeholder="请选择">
+            <el-option
+              v-for="item in options"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="信息状态" prop="infoStatus" style="float: left;">
+          <el-select v-model="ruleForm.infoStatus" placeholder="请选择">
+            <el-option
+              v-for="item in options"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-row>
+      <el-row :gutter="20" class="hide-useless-requiedIcon">
+        <el-col :span="3">
+          <el-form-item label="信息的开始时间" prop="date1">
+            <el-date-picker
+              v-model="ruleForm.date1"
+              type="date"
+              placeholder="选择日期">
+            </el-date-picker>
+          </el-form-item>
+        </el-col>
+        <el-col :span="4">
+          <el-form-item label=" " prop="time1">
+            <el-time-picker
+              v-model="ruleForm.time1"
+              format="HH:mm"
+              placeholder="任意时间点">
+            </el-time-picker>
+          </el-form-item>
+        </el-col>
+        <el-col :span="3">
+          <el-form-item label="信息的结束时间" prop="date2">
+            <el-date-picker
+              v-model="ruleForm.date2"
+              type="date"
+              placeholder="选择日期">
+            </el-date-picker>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label=" " prop="time2">
+            <el-time-picker
+              v-model="ruleForm.time2"
+              format="HH:mm"
+              :picker-options="{
+                selectableRange: '18:30:00 - 20:30:00'
+              }"
+              placeholder="任意时间点">
+            </el-time-picker>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-form-item class="buttons">
+        <el-button type="primary" @click="submitForm('ruleForm')">查询</el-button>
+        <el-button @click="resetForm('ruleForm')">重置</el-button>
+      </el-form-item>
+    </el-form>
+    <p class="warning-text">注意：已发送过的信息修改无效，且不能被删除</p>
+    <!-- 表格 -->
+    <el-table
+      :data="tableData"
+      border
+      style="width: 100%;">
+      <el-table-column
+        prop="id"
+        label="序号"
+        width="60">
+      </el-table-column>
+      <el-table-column
+        prop="messageCode"
+        label="信息代码"
+        width="120">
+      </el-table-column>
+      <el-table-column
+        prop="content"
+        label="信息内容"
+        width="600">
+      </el-table-column>
+      <el-table-column
+        prop="beginsTime"
+        label="开始时间"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="endTime"
+        label="结束时间"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="status"
+        label="状态"
+        width="160">
+        <template slot-scope="scope">
+          {{statusFilter(scope.row.status)}}
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="areas"
+        label="地区">
+      </el-table-column>
+    </el-table>
+    <pagination style="float: right;margin-top: 10px;"/>
+  </div>
+</template>
+
+<script>
+import Pagination from '@/components/Pagination/index'
+
+export default {
+  name: 'InfoList',
+  components: {
+    pagination: Pagination
+  },
+  data() {
+    return {
+      ruleForm: {
+        infoCode: '',
+        date1: '',
+        time1: '',
+        date2: '',
+        time2: '',
+        sortType: '',
+        infoStatus: '',
+        sendContent: '',
+        keyword1: '',
+        keyword2: '',
+        keyword3: '',
+      },
+      options: [{
+        label: '选择1',
+        value: '1'
+      }, {
+        label: '选择2',
+        value: '2'
+      }],
+      tableData: [
+        {
+          id: 1,
+          messageCode: 12345,
+          content: '2019-12-52019-12-52019-12-52019-12-55',
+          beginsTime: '2019-12-5',
+          engTime: '2019-12-5',
+          status: 1,
+          areas: '金华'
+        },
+        {
+          id: 2,
+          messageCode: 12345,
+          content: 'null',
+          beginsTime: '2019-12-5',
+          engTime: '2019-12-5',
+          status: 2,
+          areas: '金华'
+        },
+      ],
+      currentPage: 1,
+    }
+  },
+  methods: {
+    handleCheckAllChange(val) {
+      this.ruleForm.city = val ? this.cities : [];
+      this.isIndeterminate = false;
+    },
+    handleCheckedCitiesChange(value) {
+      const checkedCount = value.length;
+      this.checkAll = checkedCount === this.cities.length;
+      this.isIndeterminate = checkedCount > 0 && checkedCount < this.cities.length;
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          alert('submit!');
+        } else {
+          console.log('error submit!!');
+        }
+      })
+    },
+    resetForm(formName) {
+      this.$refs[formName].resetFields();
+    },
+    statusFilter(val) {
+      console.log(val)
+      switch (+val) {
+        case 0:
+          return '未审核'
+        case 1:
+          return '待审核'
+        case 2:
+          return '未审核'
+        case 3:
+          return '待审核'
+        case 4:
+          return '未审核'
+        case 5:
+          return '待审核'
+        case 6:
+          return '未审核'
+        default:
+          return '未定义'
+      }
+    }
+  }
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style lang="scss">
+  .info-form{
+    .el-form-item__label{
+      float: inherit;
+      line-height: 30px;
+      color: $formLabel;
+      font-weight: 400;
+    }
+    .hide-useless-requiedIcon{
+      .el-col:nth-child(even){
+        .el-form-item__label{
+          &::before{
+            display: none
+          }
+        }
+      }
+    }
+    .area-select{
+      .el-form-item__content{
+        padding: 10px 20px;
+        border: 1px solid #d3d3d3;
+        .el-checkbox__inner{
+          width: 20px;
+          height: 20px;
+        }
+        .el-checkbox__input.is-checked .el-checkbox__inner,
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner{
+          background-color: #fff;
+          border-color: #409EFF;
+        }
+        .el-checkbox__inner::after{
+          border:2px solid #409EFF;
+          border-left: 0;
+          border-top: 0px;
+          height: 13px;
+          width: 5px;
+          left: 6px;
+          top: 0px;
+        }
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner::before{
+          background-color: #409EFF;
+        }
+        .el-checkbox__input.is-checked+.el-checkbox__label{
+          color: #353535;
+        }
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner::before{
+          height: 17px;
+          top: 1px;
+        }
+      }
+    }
+    .el-textarea__inner{
+      padding: 5px 10px;
+      min-height: 32px;
+      height: 32px;
+    }
+    .el-textarea{
+      .el-input__count{
+        color: red;
+        font-size: 14px;
+        bottom:10px;
+        &::before{
+          content:'（你已经录入了 ';
+          color: $formLabel;
+        }
+        &::after{
+          content:' 字）';
+          color: $formLabel;
+        }
+      }
+    }
+    .buttons{
+      margin-top: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+      .el-button{
+        padding: 12px 35px;
+      }
+    }
+  }
+  .pagination{
+    float: right;
+    margin-top: 10px;
+  }
+  .warning-text{
+    color: $warnColor;
+    line-height: 30px;
+    font-size: 12px;
+    border-top: 1px solid #e9e9e9
+  }
+</style>
+<style lang="scss" scoped>
+  /deep/ .el-table .cell{
+    margin-left: 50%;
+    transform: translate(-50%);
+    float: left;
+    max-width: 90%;
+  }
+  /deep/ .el-input__icon:before {
+    position: relative;
+    top: -3px;
+  }
+</style>

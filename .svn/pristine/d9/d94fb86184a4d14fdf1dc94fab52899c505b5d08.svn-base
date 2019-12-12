@@ -1,0 +1,59 @@
+<template>
+  <div class="menu-wrapper">
+    <el-scrollbar :native="false">
+      <el-menu
+        :default-active="$route.path"
+        class="nav-el-menu-vertical"
+        :unique-opened="true"
+        :collapse="isCollapse"
+        :collapse-transition= 'false'
+      >
+        <ItemBar
+          v-for="item in routers"
+          :key="item.path"
+          :item="item"
+          :base-path="item.path"
+        />
+      </el-menu>
+    </el-scrollbar>
+  </div>
+</template>
+
+<script>
+import ItemBar from './itemBar'
+
+export default {
+  name: 'SliderBar',
+  components: {
+    ItemBar
+  },
+  computed: {
+    routers() {
+      return this.$store.getters.routers
+    },
+    isCollapse() {
+      return this.$store.getters.isCollapse
+    }
+  }
+}
+</script>
+<style lang="scss">
+  .menu-wrapper{
+    .el-menu{
+      border:0;
+      width:240px;
+      transition: 0.15s;
+    }
+    .el-scrollbar{
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      padding-top: 70px;
+      transition: padding-top .3s;
+      border-right: 1px solid $borderLightGray;
+    }
+    .el-scrollbar__wrap {
+      overflow-x: hidden;
+    }
+  }
+</style>

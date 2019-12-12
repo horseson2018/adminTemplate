@@ -1,0 +1,705 @@
+<template>
+  <div class="info-form">
+    <el-form :model="ruleForm"
+      ref="ruleForm">
+      <el-row :gutter="20" style="margin-left: 0">
+        <el-form-item label="信息代码" prop="infoCode" style="float: left;margin-right: 20px;">
+          <el-select v-model="ruleForm.infoCode" placeholder="请选择">
+            <el-option
+              v-for="item in options"
+              :key="item.messageCode"
+              :label="item.messageCode +'\xa0\xa0\xa0' + item.messageName"
+              :value="item.messageCode">
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="排序方式" prop="sortType" style="float: left;margin-right: 20px;">
+          <el-select v-model="ruleForm.sortType" placeholder="请选择">
+            <el-option
+              v-for="item in sortways"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="信息状态" prop="infoStatus" style="float: left;">
+          <el-select v-model="ruleForm.infoStatus" placeholder="请选择">
+            <el-option
+              v-for="item in statuslist"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-row>
+      <el-form-item label="信息内容" prop="sendContent">
+        <el-col :span="16">
+          <el-input
+            type="textarea"
+            :autosize="{ minRows: 1, maxRows: 1}"
+            resize="none"
+            maxlength="68"
+            placeholder="请输入内容"
+            v-model="ruleForm.sendContent">
+          </el-input>
+        </el-col>
+      </el-form-item>
+      <el-form-item label="信息关键字">
+        <el-col :span="4">
+          <el-input v-model="ruleForm.keyword1" placeholder="关键字1">
+          </el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input v-model="ruleForm.keyword2" placeholder="关键字2" style="margin-left: 20px;">
+          </el-input>
+        </el-col>
+        <el-col :span="4">
+          <el-input v-model="ruleForm.keyword3" placeholder="关键字3" style="margin-left: 40px;">
+          </el-input>
+        </el-col>
+      </el-form-item>
+      <el-row :gutter="20" class="hide-useless-requiedIcon">
+        <el-col :span="3">
+          <el-form-item label="信息的开始时间" prop="date1">
+            <el-date-picker
+              v-model="ruleForm.date1"
+              type="date"
+              placeholder="选择日期">
+            </el-date-picker>
+          </el-form-item>
+        </el-col>
+        <el-col :span="4">
+          <el-form-item label=" " prop="time1">
+            <el-time-picker
+              v-model="ruleForm.time1"
+              format="HH:mm"
+              placeholder="任意时间点">
+            </el-time-picker>
+          </el-form-item>
+        </el-col>
+        <el-col :span="3">
+          <el-form-item label="信息的结束时间" prop="date2">
+            <el-date-picker
+              v-model="ruleForm.date2"
+              type="date"
+              placeholder="选择日期">
+            </el-date-picker>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
+          <el-form-item label=" " prop="time2">
+            <el-time-picker
+              v-model="ruleForm.time2"
+              format="HH:mm"
+              placeholder="任意时间点">
+            </el-time-picker>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-form-item class="buttons">
+        <el-button type="primary" @click="submitForm('ruleForm')">查询</el-button>
+        <el-button @click="resetForm('ruleForm')">重置</el-button>
+      </el-form-item>
+    </el-form>
+    <p class="warning-text">注意：已发送过的信息修改无效，且不能被删除</p>
+    <!-- 表格 -->
+    <el-table
+      :data="tableData"
+      border
+      style="width: 100%;">
+      <el-table-column
+        prop="id"
+        label="序号"
+        width="90">
+      </el-table-column>
+      <el-table-column
+        prop="messageCode"
+        label="信息代码">
+      </el-table-column>
+      <el-table-column
+        prop="content"
+        label="信息内容">
+      </el-table-column>
+      <el-table-column
+        prop="beginsTime"
+        label="开始时间">
+        <template slot-scope="scope">
+          <div v-html="timeFilter(scope.row.beginsTime)"></div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="engTime"
+        label="结束时间">
+        <template slot-scope="scope">
+          <div v-html="timeFilter(scope.row.engTime)"></div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="status"
+        label="状态"
+        width="120">
+        <template slot-scope="scope">
+          <div v-html="statusFilter(scope.row.status)"></div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="areas"
+        label="地区">
+      </el-table-column>
+      <el-table-column
+        label="操作">
+        <template slot-scope="scope">
+          <el-button @click="openAuditDia(0, scope.row)" type="text" size="small"
+          v-if="scope.row.status < 2">提交初审</el-button>
+          <el-button @click="openAuditDia(1, scope.row)" type="text" size="small"
+          v-if="scope.row.status == 2">提交终审</el-button>
+          <el-button @click="sendInfo(scope.row)" type="text" size="small"
+          v-if="scope.row.status == 3">发布</el-button>
+          <el-button @click="rejectAudit(scope.row)" type="text" size="small"
+          v-if="scope.row.status == 1 || scope.row.status == 2">驳回</el-button>
+          <el-button @click="cancelSend(scope.row)" type="text" size="small"
+          v-if="scope.row.status == 4">撤销</el-button>
+          <el-button @click="editInfo(scope.row)" type="text" size="small"
+          v-if="scope.row.status == 0 || scope.row.status > 5">修改</el-button>
+          <el-button @click="deleteInfo(scope.row)" type="text" size="small"
+          v-if="scope.row.status == 0 || scope.row.status > 5">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <pagination style="float: right;margin-top: 10px;"
+      v-show='total>0'
+      :total='total'
+      :page.sync='currentPage'
+      limit.sync='5'
+      @pagination='getList'/>
+
+    <!-- 提交审核对话框 -->
+    <el-dialog width='500px' custom-class="custom-dialog"
+      :title='title'
+      :visible.sync='dialogshowAudit'>
+      <el-scrollbar style="height: 150px;margin-bottom: 20px;">
+        <el-checkbox-group v-model="auditorChecked" @change="handleCheckedAuditors">
+          <el-checkbox style="line-height: 50px;width: 25%"
+          v-for="(item, key) in auditorList"
+          :label="item"
+          :key="key" name="auditor">{{item.name}}</el-checkbox>
+        </el-checkbox-group>
+      </el-scrollbar>
+      <div slot='footer' class='dialog-footer'>
+        <el-checkbox
+          style="float: left"
+          :indeterminate="isIndeterminate"
+          v-model="checkAllAuditor"
+          @change="handleCheckAllAuditor">
+          全选
+        </el-checkbox>
+        <el-button type='primary' @click='updateStatus'>提 交</el-button>
+      </div>
+    </el-dialog>
+    <!-- 修改信息内容对话框 -->
+    <el-dialog :title='title'
+      :visible.sync='dialogshowEdit'
+      width='520px'
+      custom-class="custom-dialog">
+      <el-form ref='diaForm' :model='diaForm' :rules='rules' label-width='80px'>
+        <el-form-item label="信息代码" prop="infoCode">
+          <el-select v-model="diaForm.infoCode" placeholder="请选择">
+            <el-option
+              v-for="item in options"
+              :key="item.messageCode"
+              :label="item.messageCode +'\xa0\xa0\xa0' + item.messageName"
+              :value="item.messageCode">
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="开始时间" prop="beginTime">
+          <el-date-picker
+            v-model="diaForm.beginTime"
+            type="datetime"
+            format="yyyy-MM-dd HH:mm"
+            placeholder="选择开始时间">
+          </el-date-picker>
+        </el-form-item>
+        <el-form-item label="结束时间" prop="endTime">
+          <el-date-picker
+            v-model="diaForm.endTime"
+            type="datetime"
+            format="yyyy-MM-dd HH:mm"
+            placeholder="选择结束时间">
+          </el-date-picker>
+        </el-form-item>
+        <el-form-item label="地区选择" prop="city" class="area-select">
+          <el-checkbox
+            :indeterminate="isCityIndeterminate"
+            v-model="checkAllCities"
+            @change="handleCheckAllCities">
+            全选
+          </el-checkbox>
+          <el-checkbox-group v-model="diaForm.city" @change="handleCheckedCities">
+            <el-checkbox v-for="city in cities" :label="city" :key="city" name="city"></el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item label="信息内容" prop="sendContent">
+          <el-input
+            type="textarea"
+            :autosize="{ minRows: 1, maxRows: 1}"
+            resize="none"
+            maxlength="68"
+            placeholder="请输入内容"
+            v-model="diaForm.sendContent">
+          </el-input>
+        </el-form-item>
+      </el-form>
+      <div slot='footer' class='dialog-footer'>
+        <el-button type='primary' @click="submitEdit('diaForm')">确 定</el-button>
+        <el-button @click='cancelEdit'>取 消</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { listAuditAll } from '@/api/deploy/auditor';
+import * as httpRequest from '@/api/infoManage/infoList'
+import Pagination from '@/components/Pagination/index'
+
+export default {
+  name: 'InfoList',
+  components: {
+    pagination: Pagination
+  },
+  data() {
+    return {
+      ruleForm: {
+        infoCode: '',
+        date1: '',
+        time1: new Date(2019, 12, 9, 0, 0),
+        date2: '',
+        time2: new Date(2019, 12, 9, 0, 0),
+        sortType: '',
+        infoStatus: '',
+        sendContent: '',
+        keyword1: '',
+        keyword2: '',
+        keyword3: '',
+      },
+      options: [],
+      sortways: [
+        {
+          label: '信息代码',
+          value: 'message_code'
+        }, {
+          label: '开始时间',
+          value: 'begin_time'
+        }, {
+          label: '状态',
+          value: 'status'
+        }
+      ],
+      statuslist: [
+        {
+          value: 0,
+          label: '未审核'
+        }, {
+          value: 1,
+          label: '待审核'
+        }, {
+          value: 2,
+          label: '初审通过'
+        }, {
+          value: 3,
+          label: '终审通过'
+        }, {
+          value: 4,
+          label: '未下发'
+        }, {
+          value: 5,
+          label: '已下发'
+        }, {
+          value: 6,
+          label: '审核驳回'
+        }, {
+          value: 7,
+          label: '已撤销'
+        }
+      ],
+      tableData: [],
+      currentPage: 1,
+      total: 0,
+      // 当前处理信息
+      handleInfo: '',
+      // 审核人
+      auditorList: [],
+      auditorChecked: [],
+      checkAllAuditor: false,
+      isIndeterminate: false,
+      // 对话框
+      dialogshowAudit: false,
+      title: '提示',
+      // 对话框修改内容rule
+      dialogshowEdit: false,
+      diaForm: {
+        infoCode: '',
+        beginTime: '',
+        endTime: '',
+        city: [],
+        sendContent: '',
+      },
+      rules: {
+        infoCode: [
+          { required: true, message: '请选择信息代码', trigger: 'change' }
+        ],
+        beginTime: [
+          {
+            required: true,
+            message: '请选择时间',
+            trigger: 'change'
+          }
+        ],
+        endTime: [
+          {
+            required: true,
+            message: '请选择时间',
+            trigger: 'change'
+          }
+        ],
+        city: [
+          {
+            type: 'array',
+            required: true,
+            message: '请至少选择一个地区',
+            trigger: 'change'
+          }
+        ],
+        sendContent: [
+          { required: true, message: '请填写信息内容', trigger: 'blur' }
+        ]
+      },
+      isCityIndeterminate: false,
+      checkAllCities: false,
+      cities: ['杭州', '丽水', '金华', '温州', '宁波', '舟山', '衢州', '台州', '嘉兴', '绍兴', '湖州'],
+    }
+  },
+  mounted() {
+    this.init()
+  },
+  methods: {
+    init() {
+      // 信息代码列表
+      httpRequest.getCodeList().then((res) => {
+        this.options = res.data
+      })
+      // 信息列表
+      this.getList(1)
+    },
+    handleCheckAllAuditor(val) {
+      this.auditorChecked = val ? this.auditorList : []
+      this.isIndeterminate = false
+    },
+    handleCheckedAuditors(value) {
+      const checkedCount = value.length
+      this.checkAllAuditor = checkedCount === this.auditorList.length
+      this.isIndeterminate = checkedCount > 0 && checkedCount < this.auditorList.length
+    },
+    resetForm(formName) {
+      this.$refs[formName].resetFields();
+    },
+    submitForm() {
+      this.getList(1)
+    },
+    getList(page) {
+      const param = {
+        pageNum: this.currentPage || page,
+        pageSize: 5,
+        messageCode: this.ruleForm.infoCode,
+        content: this.ruleForm.sendContent,
+        msgKeyord1: this.ruleForm.keyword1,
+        msgKeyord2: this.ruleForm.keyword2,
+        msgKeyord3: this.ruleForm.keyword3,
+        sortWay: this.ruleForm.sortType,
+        status: this.ruleForm.infoStatus,
+        beginsTime: this.timeTranslator(this.ruleForm.date1, this.ruleForm.time1),
+        engTime: this.timeTranslator(this.ruleForm.date2, this.ruleForm.time2),
+      }
+      httpRequest.infoListPages(param).then((res) => {
+        console.log(res)
+        if (res.code === 200) {
+          this.total = res.total
+          this.tableData = res.rows
+        } else {
+          this.$message.error(res.msg);
+        }
+      })
+    },
+    // 提交终审
+    openAuditDia(role, data) {
+      this.handleInfo = data
+      this.handleInfo.role = role
+      this.dialogshowAudit = true
+      this.title = '审核人'
+      this.getAuditors(role)
+    },
+    // 查询审核人列表
+    getAuditors(role) {
+      const param = { role }
+      listAuditAll(param).then((res) => {
+        console.log(res)
+        if (res.code === 200) {
+          this.auditorList = res.data
+        } else {
+          this.$message.error(res.msg)
+        }
+      })
+    },
+    updateStatus() {
+      const param = []
+      this.auditorChecked.forEach((item) => {
+        param.push({
+          taskId: this.handleInfo.id,
+          name: item.name,
+          phone: item.phone,
+          role: this.handleInfo.role,
+          taskContent: this.handleInfo.content
+        })
+      })
+      httpRequest.infoReply(param).then((res) => {
+        console.log(res)
+        if (res.code === 200) {
+          this.$message.success('提交成功')
+        }
+      })
+    },
+    // 修改信息
+    editInfo(data) {
+      console.log(data)
+      this.dialogshowEdit = true
+      console.log(this.cities)
+      this.diaForm.id = data.id
+      this.diaForm.infoCode = data.messageCode
+      this.diaForm.beginTime = data.beginsTime
+      this.diaForm.endTime = data.engTime
+      this.diaForm.city = ((str) => {
+        const arr = []
+        str
+          .split(',')
+          .forEach((item) => {
+            arr.push(item)
+          })
+        return arr
+      })(data.areas)
+      this.diaForm.sendContent = data.content
+    },
+    // 提交修改
+    submitEdit(formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          const param = {
+            id: this.diaForm.id,
+            messageCode: this.diaForm.infoCode,
+            beginsTime: this.diaForm.beginTime,
+            engTime: this.diaForm.endTime,
+            areas: this.diaForm.city.toString(),
+            content: this.diaForm.sendContent
+          }
+          this.$confirm('确定修改该条信息?', '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            httpRequest.infoChange(param).then((res) => {
+              if (res.code === 200) {
+                this.$message({
+                  type: 'success',
+                  message: '修改成功'
+                })
+                this.dialogshowEdit = false
+                this.getList(this.currentPage)
+              }
+            })
+          }).catch(() => {
+          })
+        } else {
+          console.log('error submit!!')
+        }
+      })
+    },
+    cancelEdit() {
+      this.dialogshowEdit = false
+    },
+    handleCheckAllCities(val) {
+      this.ruleForm.city = val ? this.cities : []
+      this.isCityIndeterminate = false
+    },
+    handleCheckedCities(value) {
+      const checkedCount = value.length
+      this.checkAllCities = checkedCount === this.cities.length
+      this.isCityIndeterminate = checkedCount > 0 && checkedCount < this.cities.length
+    },
+    // 删除信息
+    deleteInfo(data) {
+      console.log(data)
+      this.$confirm('确定删除该条信息?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        httpRequest.infoDelete(data.id).then((res) => {
+          if (res.code === 200) {
+            this.$message({
+              type: 'success',
+              message: '删除成功'
+            })
+            this.getList(this.currentPage)
+          }
+        })
+      }).catch(() => {
+      })
+    },
+    statusFilter(val) {
+      const str = ((a) => {
+        switch (a) {
+          case 0:
+            return '未审核'
+          case 1:
+            return '待审核'
+          case 2:
+            return '初审通过'
+          case 3:
+            return '终审通过'
+          case 4:
+            return '未下发'
+          case 5:
+            return '已下发'
+          case 6:
+            return '审核驳回'
+          case 7:
+            return '已撤销'
+          default:
+            return '异常'
+        }
+      })(val)
+      const color = ((b) => {
+        switch (b) {
+          case 0:
+            return '#ff0000'
+          case 1:
+            return '#ff0000'
+          case 2:
+            return '#00d92e'
+          case 3:
+            return '#00d92e'
+          case 4:
+            return '#f69600'
+          case 5:
+            return '#00d92e'
+          case 6:
+            return '#ff0000'
+          case 7:
+            return '#a2a2a2'
+          default:
+            return '#a2a2a2'
+        }
+      })(val)
+      return `<span style="color:${color}">${str}</span>`
+    },
+    timeFilter(str) {
+      const date = new Date(str)
+      const y = date.getFullYear()
+      const m = (date.getMonth() + 1) < 10 ? `0${(date.getMonth() + 1)}` : (date.getMonth() + 1)
+      const d = date.getDate() < 10 ? `0${date.getDate()}` : date.getDate()
+      const h = date.getHours() < 10 ? `0${date.getHours()}` : date.getHours()
+      const i = date.getMinutes() < 10 ? `0${date.getMinutes()}` : date.getMinutes()
+      return `<span>${y}-${m}-${d}<br>${h}:${i}:00</span>`
+    },
+    timeTranslator(date, time) {
+      if (date && time) {
+        const newDate = new Date(date)
+        const day = newDate.toLocaleDateString()
+        const newTime = new Date(time)
+        const st = `${newTime.getHours()}:${newTime.getMinutes()}:00`
+        return `${day} ${st}`
+      }
+      return ''
+    }
+  }
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style lang="scss">
+  .info-form{
+    .el-form-item__label{
+      float: inherit;
+      line-height: 30px;
+      color: $formLabel;
+      font-weight: 400;
+    }
+    .hide-useless-requiedIcon{
+      .el-col:nth-child(even){
+        .el-form-item__label{
+          &::before{
+            display: none
+          }
+        }
+      }
+    }
+    .el-textarea__inner{
+      padding: 5px 10px;
+      min-height: 32px;
+      height: 32px;
+    }
+    .el-textarea{
+      .el-input__count{
+        color: red;
+        font-size: 14px;
+        bottom:10px;
+        &::before{
+          content:'（你已经录入了 ';
+          color: $formLabel;
+        }
+        &::after{
+          content:' 字）';
+          color: $formLabel;
+        }
+      }
+    }
+    .buttons{
+      margin-top: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+      .el-button{
+        padding: 12px 35px;
+      }
+    }
+  }
+  .pagination{
+    float: right;
+    margin-top: 10px;
+  }
+  .warning-text{
+    color: $warnColor;
+    line-height: 30px;
+    font-size: 12px;
+    border-top: 1px solid #e9e9e9
+  }
+</style>
+<style lang="scss" scoped>
+  /deep/ .el-table .cell{
+    text-align: center;
+  }
+  /deep/ .el-table td, .el-table th {
+    padding: 4px 0;
+  }
+  /deep/ .el-input__icon:before {
+    position: relative;
+    top: -3px;
+  }
+  /deep/ .is-horizontal{
+    display: none;
+  }
+  /deep/ .el-scrollbar__wrap{
+    overflow-x: hidden;
+  }
+</style>

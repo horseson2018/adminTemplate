@@ -1,0 +1,167 @@
+// demo数据，开发时请按照实际情况编写代码
+const globals = {
+  // 获取用户token
+  getRouters: {
+    msg: '操作成功',
+    code: 200,
+    data: [{
+      name: 'System',
+      path: '/system',
+      redirect: 'noRedirect',
+      component: 'Layout',
+      alwaysShow: true,
+      meta: {
+        title: '系统管理',
+        icon: 's-tools'
+      },
+      children: [{
+        name: 'User',
+        path: 'user',
+        component: 'User',
+        meta: {
+          title: '用户管理',
+          icon: 'user'
+        }
+      }, {
+        name: 'Role',
+        path: 'role',
+        component: 'Role',
+        meta: {
+          title: '角色管理',
+          icon: 'peoples'
+        }
+      }, {
+        name: 'Menu',
+        path: 'menu',
+        component: 'Menu',
+        meta: {
+          title: '菜单管理',
+          icon: 'tree-table'
+        }
+      }, {
+        name: 'Dept',
+        path: 'dept',
+        component: 'Dept',
+        meta: {
+          title: '部门管理',
+          icon: 'tree'
+        }
+      }, {
+        name: 'Auditor',
+        path: 'auditor',
+        component: 'Auditor',
+        meta: {
+          title: '审核人员维护',
+          icon: 'tree'
+        }
+      }]
+    }, {
+      name: 'Tool',
+      path: '/tool',
+      redirect: 'noRedirect',
+      component: 'Layout',
+      alwaysShow: true,
+      meta: {
+        title: '系统工具',
+        icon: 's-cooperation'
+      },
+      children: [{
+        name: 'Server',
+        path: 'server',
+        component: 'tool/gen/index',
+        meta: {
+          title: '代码生成',
+          icon: 'code'
+        }
+      }, {
+        name: 'Swagger',
+        path: 'swagger',
+        component: 'tool/swagger/index',
+        meta: {
+          title: '系统接口',
+          icon: 'swagger'
+        }
+      }]
+    }, {
+      name: 'Message',
+      path: '/message',
+      redirect: 'noRedirect',
+      component: 'Layout',
+      alwaysShow: true,
+      meta: {
+        title: '任务管理',
+        icon: 'document'
+      },
+      children: [{
+        name: 'Msg',
+        path: 'msg',
+        component: 'message/msg/index',
+        meta: {
+          title: '信息录入',
+          icon: 'clipboard'
+        }
+      }, {
+        name: 'Msglist',
+        path: 'msglist',
+        component: 'message/msglist/index',
+        meta: {
+          title: '信息列表',
+          icon: 'build'
+        }
+      }, {
+        name: 'Msgaudit',
+        path: 'msgaudit',
+        component: 'message/msgaudit/index',
+        meta: {
+          title: '信息审核',
+          icon: 'skill'
+        }
+      }]
+    }, {
+      name: 'Deploy',
+      path: '/deploy',
+      redirect: 'noRedirect',
+      component: 'Layout',
+      alwaysShow: true,
+      meta: {
+        title: '配置管理',
+        icon: 's-cooperation'
+      },
+      children: [{
+        name: 'Audit',
+        path: 'audit',
+        component: 'message/audit/index',
+        meta: {
+          title: '审核人管理',
+          icon: 'phone'
+        }
+      }, {
+        name: 'Event',
+        path: 'event',
+        component: 'deploy/event/index',
+        meta: {
+          title: '征文互动',
+          icon: 'education'
+        }
+      }, {
+        name: 'Word',
+        path: 'word',
+        component: 'deploy/word/index',
+        meta: {
+          title: '敏感词管理',
+          icon: 'swagger'
+        }
+      }, {
+        name: 'Setting',
+        path: 'setting',
+        component: 'deploy/setting/index',
+        meta: {
+          title: '撤销阀值管理',
+          icon: 'eye-open'
+        }
+      }]
+    }]
+  }
+}
+
+export default globals

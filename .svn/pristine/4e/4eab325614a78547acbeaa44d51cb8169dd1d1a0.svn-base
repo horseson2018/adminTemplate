@@ -1,0 +1,580 @@
+<template>
+  <div class="info-form">
+    <el-form :model="ruleForm"
+      ref="ruleForm"
+      style="margin-bottom: 10px;">
+      <el-row :gutter="20" class="hide-useless-requiedIcon">
+        <el-col :span="3">
+          <el-select v-model="ruleForm.infoCode" placeholder="信息代码">
+            <el-option
+              v-for="item in options"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select>
+        </el-col>
+        <el-col :span="3">
+          <el-select v-model="ruleForm.infoStatus" placeholder="信息状态">
+            <el-option
+              v-for="item in statuslist"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select>
+        </el-col>
+        <el-col :span="3">
+          <el-date-picker
+            v-model="ruleForm.date1"
+            type="date"
+            placeholder="选择日期">
+          </el-date-picker>
+        </el-col>
+        <el-col :span="3">
+          <el-time-picker
+            v-model="ruleForm.time1"
+            format="HH:mm"
+            placeholder="任意时间点">
+          </el-time-picker>
+        </el-col>
+        <div class="fl mt10" style="margin-left: 15px;">
+        ~
+        </div>
+        <el-col :span="3">
+          <el-date-picker
+            v-model="ruleForm.date2"
+            type="date"
+            placeholder="选择日期">
+          </el-date-picker>
+        </el-col>
+        <el-col :span="3">
+          <el-time-picker
+            v-model="ruleForm.time2"
+            format="HH:mm"
+            placeholder="任意时间点">
+          </el-time-picker>
+        </el-col>
+        <el-col :span="3">
+          <el-button type="primary" size="small" @click="submitForm('ruleForm')">查询</el-button>
+        </el-col>
+      </el-row>
+    </el-form>
+    <!-- 表格 -->
+    <el-table
+      :data="tableData"
+      highlight-current-row
+      @current-change="handleCurrentChange"
+      border
+      style="width: 100%;">
+      <el-table-column
+        prop="id"
+        label="序号"
+        width="90">
+      </el-table-column>
+      <el-table-column
+        prop="messageCode"
+        label="信息代码">
+      </el-table-column>
+      <el-table-column
+        prop="content"
+        label="信息内容">
+      </el-table-column>
+      <el-table-column
+        prop="beginsTime"
+        label="开始时间">
+        <template slot-scope="scope">
+          <div v-html="timeFilter(scope.row.beginsTime)"></div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="engTime"
+        label="结束时间">
+        <template slot-scope="scope">
+          <div v-html="timeFilter(scope.row.engTime)"></div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="status"
+        label="状态"
+        width="160">
+        <template slot-scope="scope">
+          <div v-html="statusFilter(scope.row.status)"></div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="areas"
+        label="地区">
+      </el-table-column>
+    </el-table>
+    <div style="overflow: hidden">
+      <pagination style="float: right;margin-top: 10px;"
+        v-show='total>0'
+        :total='total'
+        :page.sync='currentPage'
+        limit.sync='5'
+        @pagination='getList'/>
+    </div>
+    <div class="info-detail">
+      <div class="step step-first">
+        <div class="step-title">
+          <span>1</span>初审信息列表
+        </div>
+        <el-table
+          v-show="step == 1"
+          :data="detailData"
+          :span-method="arraySpanMethod"
+          border
+          style="width: 100%">
+          <el-table-column
+            prop="messageCode"
+            label="信息代码"
+            width="90">
+          </el-table-column>
+          <el-table-column
+            prop="content"
+            label="信息内容">
+          </el-table-column>
+          <el-table-column
+            prop="beginsTime"
+            label="开始时间">
+            <template slot-scope="scope">
+              <div v-html="timeFilter(scope.row.beginsTime)"></div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="engTime"
+            label="结束时间">
+            <template slot-scope="scope">
+              <div v-html="timeFilter(scope.row.engTime)"></div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="status"
+            label="状态">
+            <template slot-scope="scope">
+              <div v-html="statusFilter(scope.row.status)"></div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="操作">
+            <template slot-scope="scope">
+              <el-button @click="updateStatus(scope.row)" type="text" size="small">提交初审</el-button>
+              <el-button @click="rejectAudit(scope.row)" type="text" size="small">驳回</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div class="step step-second">
+        <div class="step-title">
+          <span>2</span>终审信息列表
+        </div>
+        <el-table
+          v-show="step == 2"
+          :data="detailData"
+          :span-method="arraySpanMethod"
+          border
+          style="width: 100%">
+          <el-table-column
+            prop="messageCode"
+            label="信息代码"
+            width="90">
+          </el-table-column>
+          <el-table-column
+            prop="content"
+            label="信息内容">
+          </el-table-column>
+          <el-table-column
+            prop="beginsTime"
+            label="开始时间">
+            <template slot-scope="scope">
+              <div v-html="timeFilter(scope.row.beginsTime)"></div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="engTime"
+            label="结束时间">
+            <template slot-scope="scope">
+              <div v-html="timeFilter(scope.row.engTime)"></div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="status"
+            label="状态">
+            <template slot-scope="scope">
+              <div v-html="statusFilter(scope.row.status)"></div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="操作">
+            <template slot-scope="scope">
+              <el-button @click="updateStatus(scope.row)" type="text" size="small">提交终审</el-button>
+              <el-button @click="rejectAudit(scope.row)" type="text" size="small">驳回</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div class="step step-third">
+        <div class="step-title">
+          <span>3</span>确认发布
+        </div>
+        <el-table
+          v-show="step == 3"
+          :data="detailData"
+          :span-method="arraySpanMethod"
+          border
+          style="width: 100%">
+          <el-table-column
+            prop="messageCode"
+            label="信息代码"
+            width="90">
+          </el-table-column>
+          <el-table-column
+            prop="content"
+            label="信息内容">
+          </el-table-column>
+          <el-table-column
+            prop="beginsTime"
+            label="开始时间">
+            <template slot-scope="scope">
+              <div v-html="timeFilter(scope.row.beginsTime)"></div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="engTime"
+            label="结束时间">
+            <template slot-scope="scope">
+              <div v-html="timeFilter(scope.row.engTime)"></div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="status"
+            label="状态">
+            <template slot-scope="scope">
+              <div v-html="statusFilter(scope.row.status)"></div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="操作">
+            <template slot-scope="scope">
+              <el-button @click="updateStatus(scope.row)" type="text" size="small"
+              v-if="scope.row.status == 3">发布</el-button>
+              <el-button @click="rejectAudit(scope.row)" type="text" size="small"
+              v-if="scope.row.status == 4">撤销</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import * as httpRequest from '@/api/infoManage/infoList'
+import Pagination from '@/components/Pagination/index'
+
+export default {
+  name: 'InfoAudit',
+  components: {
+    pagination: Pagination
+  },
+  data() {
+    return {
+      ruleForm: {
+        infoCode: '',
+        date1: '',
+        time1: new Date(2019, 12, 9, 0, 0),
+        date2: '',
+        time2: new Date(2019, 12, 9, 0, 0),
+        infoStatus: '',
+      },
+      // 当前步骤
+      step: 0,
+      options: [],
+      statuslist: [
+        {
+          value: 0,
+          label: '未审核'
+        }, {
+          value: 1,
+          label: '待审核'
+        }, {
+          value: 2,
+          label: '初审通过'
+        }, {
+          value: 3,
+          label: '终审通过'
+        }, {
+          value: 4,
+          label: '未下发'
+        }, {
+          value: 5,
+          label: '已下发'
+        }, {
+          value: 6,
+          label: '审核驳回'
+        }, {
+          value: 7,
+          label: '已撤销'
+        }],
+      tableData: [],
+      detailData: [],
+      total: 0,
+      currentPage: 1,
+    }
+  },
+  mounted() {
+    this.init()
+  },
+  methods: {
+    init() {
+      // 信息代码列表
+      httpRequest.getCodeList().then((res) => {
+        this.options = res.data
+      })
+      // 信息列表
+      this.getList(1)
+    },
+    getList(page) {
+      const param = {
+        pageNum: page || this.currentPage,
+        pageSize: 5,
+        messageCode: this.ruleForm.infoCode,
+        status: this.ruleForm.infoStatus,
+        beginTime: this.timeTranslator(this.ruleForm.date1, this.ruleForm.time1),
+        endTime: this.timeTranslator(this.ruleForm.date2, this.ruleForm.time2),
+      }
+      httpRequest.listmsg(param).then((res) => {
+        if (res.code === 200) {
+          this.total = res.total
+          this.tableData = res.rows
+        }
+      })
+    },
+    arraySpanMethod({
+      row, column, rowIndex, columnIndex
+    }) {
+      if (rowIndex === 1) {
+        console.log(row, column)
+        switch (columnIndex) {
+          case 1:
+            return [1, 4]
+          default:
+            return false
+        }
+      } else {
+        return false
+      }
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          alert('submit!');
+        } else {
+          console.log('error submit!!');
+        }
+      })
+    },
+    // 点击数据行
+    handleCurrentChange(val) {
+      console.log(val)
+      this.step = val.status > 3 ? 3 : val.status
+      this.detailData = []
+      this.detailData.push(val)
+    },
+    // 提交终审
+    updateStatus(data) {
+      console.log(data)
+    },
+    // 审核驳回
+    rejectAudit(data) {
+      console.log(data)
+    },
+    statusFilter(val) {
+      const str = ((a) => {
+        switch (a) {
+          case 0:
+            return '未审核'
+          case 1:
+            return '待审核'
+          case 2:
+            return '初审通过'
+          case 3:
+            return '终审通过'
+          case 4:
+            return '未下发'
+          case 5:
+            return '已下发'
+          case 6:
+            return '审核驳回'
+          case 7:
+            return '已撤销'
+          default:
+            return '异常'
+        }
+      })(val)
+      const color = ((b) => {
+        switch (b) {
+          case 0:
+            return '#ff0000'
+          case 1:
+            return '#ff0000'
+          case 2:
+            return '#00d92e'
+          case 3:
+            return '#00d92e'
+          case 4:
+            return '#f69600'
+          case 5:
+            return '#00d92e'
+          case 6:
+            return '#ff0000'
+          case 7:
+            return '#a2a2a2'
+          default:
+            return '#a2a2a2'
+        }
+      })(val)
+      return `<span style="color:${color}">${str}</span>`
+    },
+    timeFilter(str) {
+      const date = new Date(str)
+      const y = date.getFullYear()
+      const m = (date.getMonth() + 1) < 10 ? `0${(date.getMonth() + 1)}` : (date.getMonth() + 1)
+      const d = date.getDate() < 10 ? `0${date.getDate()}` : date.getDate()
+      const h = date.getHours() < 10 ? `0${date.getHours()}` : date.getHours()
+      const i = date.getMinutes() < 10 ? `0${date.getMinutes()}` : date.getMinutes()
+      return `<span>${y}-${m}-${d}<br>${h}:${i}:00</span>`
+    },
+    timeTranslator(date, time) {
+      if (date && time) {
+        const newDate = new Date(date)
+        const day = newDate.toLocaleDateString()
+        const newTime = new Date(time)
+        const st = `${newTime.getHours()}:${newTime.getMinutes()}:00`
+        return `${day} ${st}`
+      }
+      return ''
+    }
+  }
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style lang="scss">
+  .info-form{
+    .el-form-item__label{
+      float: inherit;
+      line-height: 30px;
+      color: $formLabel;
+      font-weight: 400;
+    }
+    .hide-useless-requiedIcon{
+      .el-col:nth-child(even){
+        .el-form-item__label{
+          &::before{
+            display: none
+          }
+        }
+      }
+    }
+    .area-select{
+      .el-form-item__content{
+        padding: 10px 20px;
+        border: 1px solid #d3d3d3;
+        .el-checkbox__inner{
+          width: 20px;
+          height: 20px;
+        }
+        .el-checkbox__input.is-checked .el-checkbox__inner,
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner{
+          background-color: #fff;
+          border-color: #409EFF;
+        }
+        .el-checkbox__inner::after{
+          border:2px solid #409EFF;
+          border-left: 0;
+          border-top: 0px;
+          height: 13px;
+          width: 5px;
+          left: 6px;
+          top: 0px;
+        }
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner::before{
+          background-color: #409EFF;
+        }
+        .el-checkbox__input.is-checked+.el-checkbox__label{
+          color: #353535;
+        }
+        .el-checkbox__input.is-indeterminate .el-checkbox__inner::before{
+          height: 17px;
+          top: 1px;
+        }
+      }
+    }
+    .el-textarea__inner{
+      padding: 5px 10px;
+      min-height: 32px;
+      height: 32px;
+    }
+    .el-textarea{
+      .el-input__count{
+        color: red;
+        font-size: 14px;
+        bottom:10px;
+        &::before{
+          content:'（你已经录入了 ';
+          color: $formLabel;
+        }
+        &::after{
+          content:' 字）';
+          color: $formLabel;
+        }
+      }
+    }
+    .buttons{
+      margin-top: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+      .el-button{
+        padding: 12px 35px;
+      }
+    }
+  }
+  .pagination{
+    float: right;
+    margin-top: 10px;
+  }
+  .info-detail{
+    border-top: 1px solid #e9e9e9;
+    margin-top: 10px;
+    .step{
+      padding: 10px 0;
+      border-bottom: 1px solid #e9e9e9;
+      .step-title{
+        color: #206C8E;
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        span{
+          background: #206C8E;
+          color: $fontWhite;
+          padding: 0 10px;
+          margin-right: 5px;
+        }
+      }
+    }
+  }
+</style>
+<style lang="scss" scoped>
+  /deep/ .el-table .cell{
+    text-align: center
+  }
+  /deep/ .el-table td, .el-table th {
+    padding: 4px 0;
+  }
+  /deep/ .el-input__icon:before {
+    position: relative;
+    top: -3px;
+  }
+</style>
